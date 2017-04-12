@@ -8,8 +8,8 @@ CFLAGS   = -Wall
 CXXFLAGS = -Wall -std=c++11
 
 # Target
-SOURCES  = main.cpp ir_debug.cc compiler.cc lexer.cc inputbuf.cc
-OBJECTS  = main.o ir_debug.o compiler.o lexer.o inputbuf.o
+SOURCES  = statementNode.cpp ir_debug.cc compiler.cc lexer.cc inputbuf.cc
+OBJECTS  = statementNode.o ir_debug.o compiler.o lexer.o inputbuf.o
 DEPFILES = $(patsubst %.o,$(DEP)/%.d,$(OBJECTS))
 TARGET   = a.out
 ZIP_FILE = source.zip
