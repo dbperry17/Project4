@@ -3,5 +3,5 @@ project(Project4)
 
 set(CMAKE_CXX_STANDARD 11)
 
-set(SOURCE_FILES pgir.cpp)
+set(SOURCE_FILES parser.cc)
 add_executable(Project4 ${SOURCE_FILES})

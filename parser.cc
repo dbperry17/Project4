@@ -14,7 +14,6 @@ bool testing = false;
 bool testParse = false;
 bool testParseAll = false;
 bool testStore = false;
-bool testPrint = true;
 bool testMatch = true;
 
 void tester()
@@ -28,7 +27,6 @@ void tester()
         testParse = false;
         testParseAll = false;
         testStore = false;
-        testPrint = false;
         testMatch = false;
     }
 }
@@ -42,32 +40,11 @@ struct Parser::idListNode
 struct Parser::Symbol
 {
     string id;
-    TokenType flag;
-    int type;
-    bool declared; //0 for implicit, 1 for explicit
     bool printed = 0;
 };
 
-//So that I don't have to remember what type number each one is
-enum
-{
-    myBool = 0, myInt, myLong, myReal, myString
-};
 
 vector<Parser::Symbol> symTable;
-int typeNum = 5;
-
-/****
- *  NOTE: While dealing with testing for 1.4 errors
- *  I realized it would probably be more practical
- *  to make a function.
- *
- *  I decided against it because I was almost done
- *  pasting the code into the relevant functions,
- *  and I didn't want to redo stuff just for an
- *  asthetic difference
- */
-
 
 
 /***********************
@@ -145,55 +122,23 @@ void Parser::parse_program()
 }
 
 //var_section -> id_list SEMICOLON
-//TODO: Adjust for the fact that only ints are used
 void Parser::parse_var_section()
 {
     if(testStore)
         cout << "\nParsing: " << "var_decl" << endl;
 
+    //var_section -> id_list SEMICOLON
     // var_decl -> id_list COLON type_name SEMICOLON
     idListNode *head = parse_id_list();
 
     //check to see if any items in list are already used
     idListNode *current = head;
-
     vector<string> idVec;
     Symbol tmpSym;
-    tmpSym.type = -2; //to make changing easier;
-    tmpSym.flag = VAR;
-    tmpSym.declared = 1;
+
+
     while(current != NULL)
     {
-        //check if variable is in symbol table
-        Symbol checksym = declCheck(current->id);
-        if(checksym.type != -1) //variable already in symbol table
-        {
-            if(checksym.flag == TYPE)
-            {
-                //Programmer-defined type redeclared as variable (error code 1.3)
-                //If a previously declared type appears again in an id_list of a
-                //variable declaration, the type is redeclared as a variable.
-                errorCode(1, 3, checksym.id);
-            }
-            else if(checksym.flag == VAR)
-            {
-                //Variable declared more than once (error code 2.1)
-                //An explicitly declared variable can be declared again
-                //explicitly by appearing as part of an id_list in a variable
-                //declaration.
-                errorCode(2, 1, checksym.id);
-            }
-        }
-
-        //check if any items in list are repeats
-        for(int iter = 0; iter < (int)idVec.size(); iter++)
-        {
-            //Remember, string comparison returns 0 if strings are equal
-            if(current->id.compare((idVec[iter])) == 0)
-            {
-                errorCode(2, 1, current->id);
-            }
-        }
         idVec.push_back(current->id);
 
         //putting variables in symbol table
@@ -244,8 +189,6 @@ Parser::idListNode* Parser::parse_id_list()
 
     if(testParseAll)
         cout << "Done Parsing: " << "id_list" << endl;
-
-    return NULL; //I'm tired of getting warnings when I compile
 }
 
 //body -> LBRACE stmt_list RBRACE
@@ -273,8 +216,9 @@ void Parser::parse_stmt_list()
     // stmt_list -> stmt stmt_list
     parse_stmt();
     Token t = peek();
-    if (t.token_type == WHILE || t.token_type == ID ||
-        t.token_type == SWITCH || t.token_type == DO)
+    if ((t.token_type == WHILE) || (t.token_type == ID) ||
+        (t.token_type == SWITCH) || (t.token_type == PRINT) ||
+        (t.token_type == FOR) || (t.token_type == IF))
     {
         // stmt_list -> stmt stmt_list
         parse_stmt_list();
@@ -351,8 +295,6 @@ void Parser::parse_stmt()
 
 //assign_stmt -> ID EQUAL primary SEMICOLON
 //assign_stmt -> ID EQUAL expr SEMICOLON
-//TODO: assign_stmt -> ID EQUAL primary SEMICOLON
-//TODO: get rid of type mismatch errors?
 void Parser::parse_assign_stmt()
 {
     if(testParse)
@@ -360,29 +302,29 @@ void Parser::parse_assign_stmt()
 
 
     Token t = peek();
-    Symbol checkSym = declCheck(t.lexeme);
 
-    //Programmer-defined type used as variable (error code 1.4)
-    //If a previously declared type appears in the body of the program, the
-    //type is used as a variable.
-    if (checkSym.flag == TYPE)
-        errorCode(1, 4, checkSym.id);
-    if(checkSym.type == -1)
-    {
-        checkSym.flag = VAR;
-        checkSym.type = typeNum;
-        typeNum++;
+    //Checking for implicit declaration
+    Symbol checkSym;
+    checkSym.id = t.lexeme;
+    if(declCheck(checkSym.id) == -1)
         symTable.push_back(checkSym);
-    }
 
     expect(ID);
     expect(EQUAL);
-    int y = parse_expr();
-    int z = unify(checkSym.type, y);
-    //C1: The left hand side of an assignment should have the same
-    //type as the right hand side of that assignment
-    if(z == -1)
-        typeMismatch(t.line_no, "C1");
+    t = peek();
+    parse_primary();
+    Token t2 = peek();
+    if((t2.token_type == PLUS) || (t2.token_type == MINUS) ||
+       (t2.token_type == MULT) || (t2.token_type == DIV))
+    {
+        //assign_stmt -> ID EQUAL expr SEMICOLON
+        lexer.UngetToken(t);
+        parse_expr();
+    }
+    else
+    {
+        //assign_stmt -> ID EQUAL primary SEMICOLON
+    }
 
     expect(SEMICOLON);
 
@@ -391,78 +333,34 @@ void Parser::parse_assign_stmt()
 }
 
 //expr -> primary op primary
-//old:
-//expr -> term PLUS expr | term
-//TODO: expr -> primary op primary
-//TODO: get rid of type mismatch errors?
-int Parser::parse_expr()
+void Parser::parse_expr()
 {
-    if (testParse)
-        cout << "\nParsing: " << "expr" << endl;
-
-    int x = parse_term();
-
-    Token t = lexer.GetToken();
-    if (t.token_type == PLUS)
-    {
-        //expr -> term PLUS expr
-        int y = parse_expr();
-        int z = unify(x, y);
-        //C2: The operands of an operation ( PLUS , MULT , and DIV )
-        //should have the same type (it can be any type, including STRING and
-        //BOOLEAN )
-        if(z == -1)
-            typeMismatch(t.line_no, "C2");
-        return z;
-
-    }
-    else if ((t.token_type == SEMICOLON) || (t.token_type == RPAREN))
-    {
-        //expr -> term
-        lexer.UngetToken(t);
-        return x;
-    }
-    else
-        syntax_error();
-
-    if (testParse)
-        cout << "Done Parsing: " << "expr" << endl;
-
-    return -1;
+    parse_primary();
+    parse_op();
+    parse_primary();
 }
 
 //primary -> ID | NUM
-//TODO: get rid of error code?
-int Parser::parse_primary()
+void Parser::parse_primary()
 {
     if(testParse)
         cout << "\nParsing: " << "primary" << endl;
 
     Token t = lexer.GetToken();
-    if((t.token_type == ID) || (t.token_type == NUM))
+    //primary -> ID
+    if(t.token_type == ID)
     {
-        //primary -> ID
-        if(t.token_type == ID)
+        //check for implicity declared variables
+        if(declCheck(t.lexeme) == -1)
         {
-            Symbol checkSym = declCheck(t.lexeme);
-            //Programmer-defined type used as variable (error code 1.4)
-            //If a previously declared type appears in the body of the
-            //program, the type is used as a variable.
-            if(checkSym.flag == TYPE)
-                errorCode(1, 4, checkSym.id);
-            if(checkSym.type == -1)
-            {
-                checkSym.flag = VAR;
-                checkSym.type = typeNum;
-                typeNum++;
-                symTable.push_back(checkSym);
-            }
-
-            return checkSym.type;
+            Symbol checkSym;
+            checkSym.id = t.lexeme;
+            symTable.push_back(checkSym);
         }
-            //primary -> NUM
-        else if(t.token_type == NUM)
-            return myInt;
+    }
+    else if(t.token_type == NUM)
+    {
+        //primary -> NUM
     }
     else
         syntax_error();
@@ -470,11 +368,10 @@ int Parser::parse_primary()
     if(testParse)
         cout << "Done Parsing: " << "primary" << endl;
 
-    return -1;
 }
 
 //op -> PLUS | MINUS | MULT | DIV
-int Parser::parse_op()
+void Parser::parse_op()
 {
     Token t = lexer.GetToken();
     if((t.token_type == PLUS) || (t.token_type == MINUS) ||
@@ -495,20 +392,13 @@ void Parser::parse_print_stmt()
 }
 
 //while_stmt -> WHILE condition body
-//TODO: Eliminate error codes?
 void Parser::parse_while_stmt()
 {
     if(testParse)
         cout << "\nParsing: " << "while_stmt" << endl;
 
     expect(WHILE);
-
-    Token t = peek(); //to get the line number
-    int x = parse_condition();
-    //C4: condition should be of type BOOLEAN
-    if(x != myBool)
-        typeMismatch(t.line_no, "C4");
-
+    parse_condition();
     parse_body();
 
     if(testParse)
@@ -516,53 +406,25 @@ void Parser::parse_while_stmt()
 }
 
 //if_stmt -> IF condition body
-//TODO: Eliminate error codes?
 void Parser::parse_if_stmt()
 {
     expect(IF);
-
-    Token t = peek(); //to get the line number
-    int x = parse_condition();
-    //C4: condition should be of type BOOLEAN
-    if(x != myBool)
-        typeMismatch(t.line_no, "C4");
-
+    parse_condition();
     parse_body();
 }
 
 //condition -> primary relop primary
-//TODO: eliminate errors?
-int Parser::parse_condition()
+void Parser::parse_condition()
 {
     if(testParse)
         cout << "\nParsing: " << "condition" << endl;
 
-    Token t = lexer.GetToken();
-    if((t.token_type == NUM) || (t.token_type == REALNUM))
-    {
-        //condition -> primary relop primary
-        int x;
-        if(t.token_type == NUM)
-            x = myInt;
-        else
-            x = myReal;
-        parse_relop();
-        int y = parse_primary();
-        //C3: The operands of a relational operator (see relop in
-        //grammar) should have the same type (it can be any type,
-        //including STRING and BOOLEAN )
-        if(unify(x, y) == -1)
-            typeMismatch(t.line_no, "C3");
-        else
-            return myBool;
-    }
-    else
-        syntax_error();
+    parse_primary();
+    parse_relop();
+    parse_primary();
 
     if(testParse)
         cout << "Done Parsing: " << "condition" << endl;
-
-    return -1;
 }
 
 //relop -> GREATER | LESS | NOTEQUAL
@@ -590,7 +452,7 @@ void Parser::parse_relop()
 //switch_stmt -> SWITCH ID LBRACE case_list RBRACE
 //switch_stmt -> SWITCH ID LBRACE case_list default_case RBRACE
 //TODO: switch_stmt -> SWITCH ID LBRACE case_list default_case RBRACE
-//TODO: eliminate errors?
+//TODO: eliminate errors
 void Parser::parse_switch_stmt()
 {
     if(testParse)
@@ -602,25 +464,32 @@ void Parser::parse_switch_stmt()
     Token t = lexer.GetToken();
     if(t.token_type == ID)
     {
-        Symbol checkSym = declCheck(t.lexeme);
-        if (checkSym.type == -1) //symbol has been implicitly declared as INT
+        if (declCheck(t.lexeme) == -1) //symbol has been implicitly declared as INT
         {
-            checkSym.type = myInt;
-            checkSym.flag = VAR;
+            Symbol checkSym;
+            checkSym.id = t.lexeme;
             symTable.push_back(checkSym);
         }
-        else if (checkSym.type > 4) //symbol is of unknown type that is equivalent to INT
-            unify(checkSym.type, myInt);
-        else if (checkSym.type != myInt) //Symbol is built-in type that is not an INT.
-        {
-            //C5: The variable that follows the SWITCH keyword in switch_stmt should be
-            //of type INT
-            typeMismatch(t.line_no, "C5");
-        }
     }
+    else
+        syntax_error();
 
     expect(LBRACE);
     parse_case_list();
+
+    t = peek();
+
+
+    if(t.token_type = DEFAULT)
+    {
+        parse_default_case();
+        //switch_stmt -> SWITCH ID LBRACE case_list default_case RBRACE
+    }
+    else
+    {
+        //switch_stmt -> SWITCH ID LBRACE case_list RBRACE
+    }
+
     expect(RBRACE);
 
     if(testParse)
@@ -693,183 +562,35 @@ void Parser::parse_default_case()
  * Functions I created from scratch *
  ************************************/
 
-//Loads int, real, boolean, string, and long into symbol table
-void Parser::loadDefaultSyms()
-{
-    //Listed in different order than in spec
-    //so as to make outputting to spec easier
-    Symbol tempSym;
-    tempSym.flag = TYPE;
-    tempSym.declared = 0; //counting defaults as implicit declarations
-    tempSym.id = "BOOLEAN";
-    tempSym.type = myBool;
-    symTable.push_back(tempSym);
-
-    tempSym.id = "INT";
-    tempSym.type = myInt;
-    symTable.push_back(tempSym);
-
-    tempSym.id = "LONG";
-    tempSym.type = myLong;
-    symTable.push_back(tempSym);
-
-    tempSym.id = "REAL";
-    tempSym.type = myReal;
-    symTable.push_back(tempSym);
-
-    tempSym.id = "STRING";
-    tempSym.type = myString;
-    symTable.push_back(tempSym);
-
-}
-
-//outputs error code
-//cat = category 1 or 2, spec = specific error
-void Parser::errorCode(int cat, int spec, string symbol)
-{
-    cout << "ERROR CODE " << cat << "." << spec << " " << symbol << endl;
-    exit(1);
-}
-
-//outputs type mismatch error
-void Parser::typeMismatch(int lineNo, string constraint)
-{
-    cout << "TYPE MISMATCH " << lineNo << " " << constraint << endl;
-    exit(1);
-}
 
 //Check to see if item is in symbol table
-Parser::Symbol Parser::declCheck(string name)
+int Parser::declCheck(string name)
 {
-    Symbol notFound;
-    notFound.id = name;
-    notFound.flag = ERROR;
-    notFound.type = -1;
-    notFound.declared = 0;
-
     for(int iter = 0; iter < (int)symTable.size(); iter++)
     {
         //Remember, string comparison returns 0 if strings are equal
         if(name.compare((symTable[iter]).id) == 0)
         {
-            return symTable[iter];
+            return iter;
         }
     }
 
-    return notFound;
+    return -1;
 }
 
 
 //Print types and variables
 void Parser::print()
 {
-    if(testPrint)
-    {
-        cout << "\nList of IDs:" << endl;
-        cout << "NAME \t\tFLAG \tTYPE \tEXP_DECL" << endl;
-        for (int i = 0; i < (int)symTable.size(); i++)
-        {
-            if((i == myBool))
-                cout << symTable[i].id << " \t";
-            else
-                cout << symTable[i].id << " \t\t";
-
-            if (symTable[i].flag == TYPE)
-                cout << "TYPE \t";
-            else if (symTable[i].flag == VAR)
-                cout << "VAR \t";
-            else
-                cout << "ERROR :\t";
-            cout << symTable[i].type << " \t";
-            cout << boolalpha << symTable[i].declared << endl;
-
-        }
-        cout << "End of list\n" << endl;
-    }
-
-    /*
-    //From PDF file
-    for each built-in type T:
-    {
-        output T
-        output all names that are type-equivalent with T in order of their appearance
-        mark outputted names to avoid re-printing them later
-        output "#\n"
-    }
-    if there are unprinted names left:
-    {
-        for each unprinted name N in order of appearance:
-        {
-            output N
-            output all other names that are type-equivalent with N in order of their appearance
-            output "#\n"
-        }
-    }
-    */
-
-    for(int i = 0; i < 5; i++)
-    {
-        cout << symTable[i].id << " ";
-        for(int j = 5; j < (int)symTable.size(); j++)
-        {
-            if(symTable[j].type == i)
-            {
-                cout << symTable[j].id << " ";
-                symTable[j].printed = true;
-            }
-        }
-        cout << "#" << endl;
-    }
-
     for(int i = 5; i < (int)symTable.size(); i++)
     {
         if(!symTable[i].printed)
         {
-            for(int j = 5; j < (int)symTable.size(); j++) //can start with i because all priors will have gone through
-            {
-                if(symTable[j].type == symTable[i].type)
-                {
-                    cout << symTable[j].id << " ";
-                    symTable[j].printed = true;
-                }
-            }
-            cout << "#" << endl;
+                cout << symTable[i].id << " ";
+                symTable[i].printed = true;
         }
     }
-
-}
-
-//Determine which common type (if possible) typeNum1 and typeNum2 can be equal to
-int Parser::unify(int typeNum1, int typeNum2)
-{
-    int newType;
-
-    if(typeNum1 == typeNum2) //both types are the same
-        newType = typeNum1;
-    else if((typeNum1 < 5) && (typeNum2 < 5)) //not same type, are different built-in types
-        newType = -1; //-1 for type mismatch
-    else if(typeNum1 < 5) //first is built in, second is not
-    {
-        //change all symbols of typeNum2 to that of typeNum1
-        for(int i = 0; i < (int)symTable.size(); i++)
-        {
-            if(symTable[i].type == typeNum2)
-                symTable[i].type = typeNum1;
-        }
-        newType = typeNum1;
-    }
-    else //either the second is built in and the first is not, or neither is built in
-    {
-        //change all symbols of typeNum1 to that of typeNum2
-        for(int i = 0; i < (int)symTable.size(); i++)
-        {
-            if(symTable[i].type == typeNum1)
-                symTable[i].type = typeNum2;
-        }
-        newType = typeNum2;
-    }
-
-    return newType;
+    cout << "#" << endl;
 }
 
 

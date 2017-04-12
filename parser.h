@@ -50,18 +50,18 @@ class Parser {
 
     void parse_program();
     void parse_var_section();
-    idListNode* parse_id_list();
+    Parser::idListNode* parse_id_list();
     void parse_body();
     void parse_stmt_list();
     void parse_stmt();
     void parse_assign_stmt();
-    int parse_expr();
-    int parse_primary();
-    int parse_op();
+    void parse_expr();
+    void parse_primary();
+    void parse_op();
     void parse_print_stmt();
     void parse_while_stmt();
     void parse_if_stmt();
-    int parse_condition();
+    void parse_condition();
     void parse_relop();
     void parse_switch_stmt();
     void parse_for_stmt();
@@ -70,10 +70,7 @@ class Parser {
     void parse_default_case();
 
     //mine
-    void errorCode(int cat, int spec, std::string symbol); //cat = category 1 or 2, spec = specific error
-    void typeMismatch(int lineNo, std::string constraint);
-    Symbol declCheck(std::string name);
-    int unify(int typeNum1, int typeNum2);
+    int declCheck(std::string name);
 };
 
 #endif
