@@ -188,6 +188,11 @@ void execute_program(struct StatementNode * program)
     }
 }
 
+struct StatementNode * parse_generate_intermediate_representation()
+{
+
+}
+
 int main()
 {
     struct StatementNode * program;
