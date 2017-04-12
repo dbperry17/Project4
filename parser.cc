@@ -145,9 +145,68 @@ void Parser::parse_program()
 }
 
 //var_section -> id_list SEMICOLON
+//TODO: Adjust for the fact that only ints are used
 void Parser::parse_var_section()
 {
+    if(testStore)
+        cout << "\nParsing: " << "var_decl" << endl;
 
+    // var_decl -> id_list COLON type_name SEMICOLON
+    idListNode *head = parse_id_list();
+
+    //check to see if any items in list are already used
+    idListNode *current = head;
+
+    vector<string> idVec;
+    Symbol tmpSym;
+    tmpSym.type = -2; //to make changing easier;
+    tmpSym.flag = VAR;
+    tmpSym.declared = 1;
+    while(current != NULL)
+    {
+        //check if variable is in symbol table
+        Symbol checksym = declCheck(current->id);
+        if(checksym.type != -1) //variable already in symbol table
+        {
+            if(checksym.flag == TYPE)
+            {
+                //Programmer-defined type redeclared as variable (error code 1.3)
+                //If a previously declared type appears again in an id_list of a
+                //variable declaration, the type is redeclared as a variable.
+                errorCode(1, 3, checksym.id);
+            }
+            else if(checksym.flag == VAR)
+            {
+                //Variable declared more than once (error code 2.1)
+                //An explicitly declared variable can be declared again
+                //explicitly by appearing as part of an id_list in a variable
+                //declaration.
+                errorCode(2, 1, checksym.id);
+            }
+        }
+
+        //check if any items in list are repeats
+        for(int iter = 0; iter < (int)idVec.size(); iter++)
+        {
+            //Remember, string comparison returns 0 if strings are equal
+            if(current->id.compare((idVec[iter])) == 0)
+            {
+                errorCode(2, 1, current->id);
+            }
+        }
+        idVec.push_back(current->id);
+
+        //putting variables in symbol table
+        tmpSym.id = current->id;
+        symTable.push_back(tmpSym);
+
+        current = current->next;
+    }
+
+    expect(SEMICOLON);
+
+    if(testStore)
+        cout << "Done Parsing: " << "var_decl" << endl;
 }
 
 //id_list -> ID COMMA id_list | ID
@@ -417,13 +476,22 @@ int Parser::parse_primary()
 //op -> PLUS | MINUS | MULT | DIV
 int Parser::parse_op()
 {
-
+    Token t = lexer.GetToken();
+    if((t.token_type == PLUS) || (t.token_type == MINUS) ||
+       (t.token_type == MULT) || (t.token_type == DIV))
+    {
+        //op -> PLUS | MINUS | MULT | DIV
+    }
+    else
+        syntax_error();
 }
 
 //print_stmt -> print ID SEMICOLON
 void Parser::parse_print_stmt()
 {
-
+    expect(PRINT);
+    expect(ID);
+    expect(SEMICOLON);
 }
 
 //while_stmt -> WHILE condition body
@@ -448,9 +516,18 @@ void Parser::parse_while_stmt()
 }
 
 //if_stmt -> IF condition body
+//TODO: Eliminate error codes?
 void Parser::parse_if_stmt()
 {
+    expect(IF);
 
+    Token t = peek(); //to get the line number
+    int x = parse_condition();
+    //C4: condition should be of type BOOLEAN
+    if(x != myBool)
+        typeMismatch(t.line_no, "C4");
+
+    parse_body();
 }
 
 //condition -> primary relop primary
@@ -553,7 +630,14 @@ void Parser::parse_switch_stmt()
 //for_stmt -> FOR LPAREN assign_stmt condition SEMICOLON assign_stmt RPAREN body
 void Parser::parse_for_stmt()
 {
-
+    expect(FOR);
+    expect(LPAREN);
+    parse_assign_stmt();
+    parse_condition();
+    expect(SEMICOLON);
+    parse_assign_stmt();
+    expect(RPAREN);
+    parse_body();
 }
 
 //case_list -> case case_list | case
@@ -599,7 +683,9 @@ void Parser::parse_case()
 //default_case -> DEFAULT COLON body
 void Parser::parse_default_case()
 {
-
+    expect(DEFAULT);
+    expect(COLON);
+    parse_body();
 }
 
 
