@@ -188,6 +188,7 @@ void execute_program(struct StatementNode * program)
     }
 }
 
+/*
 int main()
 {
     struct StatementNode * program;
@@ -201,3 +202,4 @@ int main()
     execute_program(program);
     return 0;
 }
+*/
