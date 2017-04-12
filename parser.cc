@@ -145,10 +145,11 @@ void Parser::parse_program()
 }
 
 //var_section -> id_list SEMICOLON
-void parse_var_section()
+void Parser::parse_var_section()
 {
 
 }
+
 //id_list -> ID COMMA id_list | ID
 Parser::idListNode* Parser::parse_id_list()
 {
@@ -231,6 +232,7 @@ void Parser::parse_stmt_list()
     if(testParseAll)
         cout << "Done Parsing: " << "stmt_list" << endl;
 }
+
 //stmt -> assign_stmt
 //stmt -> print_stmt
 //stmt -> while_stmt
@@ -287,6 +289,7 @@ void Parser::parse_stmt()
     if(testParseAll)
         cout << "Done Parsing: " << "stmt" << endl;
 }
+
 //assign_stmt -> ID EQUAL primary SEMICOLON
 //assign_stmt -> ID EQUAL expr SEMICOLON
 //TODO: assign_stmt -> ID EQUAL primary SEMICOLON
@@ -412,15 +415,17 @@ int Parser::parse_primary()
 }
 
 //op -> PLUS | MINUS | MULT | DIV
-int parse_op()
+int Parser::parse_op()
 {
 
 }
+
 //print_stmt -> print ID SEMICOLON
-void parse_print_stmt()
+void Parser::parse_print_stmt()
 {
 
 }
+
 //while_stmt -> WHILE condition body
 //TODO: Eliminate error codes?
 void Parser::parse_while_stmt()
@@ -443,7 +448,7 @@ void Parser::parse_while_stmt()
 }
 
 //if_stmt -> IF condition body
-void parse_if_stmt()
+void Parser::parse_if_stmt()
 {
 
 }
@@ -546,7 +551,7 @@ void Parser::parse_switch_stmt()
 }
 
 //for_stmt -> FOR LPAREN assign_stmt condition SEMICOLON assign_stmt RPAREN body
-void parse_for_stmt()
+void Parser::parse_for_stmt()
 {
 
 }
@@ -592,7 +597,7 @@ void Parser::parse_case()
 }
 
 //default_case -> DEFAULT COLON body
-void parse_default_case()
+void Parser::parse_default_case()
 {
 
 }
