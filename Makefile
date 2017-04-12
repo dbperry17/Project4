@@ -8,8 +8,8 @@ CFLAGS   = -Wall
 CXXFLAGS = -Wall -std=c++11
 
 # Target
-SOURCES  = statementNode.cpp ir_debug.cc compiler.cc lexer.cc inputbuf.cc
-OBJECTS  = statementNode.o ir_debug.o compiler.o lexer.o inputbuf.o
+SOURCES  = parser.cc pgir.cpp ir_debug.cc compiler.cc lexer.cc inputbuf.cc
+OBJECTS  = parser.o pgir.o ir_debug.o compiler.o lexer.o inputbuf.o
 DEPFILES = $(patsubst %.o,$(DEP)/%.d,$(OBJECTS))
 TARGET   = a.out
 ZIP_FILE = source.zip
@@ -44,7 +44,7 @@ $(DEP):
 
 zip: $(SOURCES)
 	@echo "Zipping source files to $(ZIP_FILE)"
-	@zip $(ZIP_FILE) Makefile $(SOURCES) ir_debug.h compiler.h lexer.h inputbuf.h
+	@zip $(ZIP_FILE) Makefile $(SOURCES) ir_debug.h compiler.h lexer.h inputbuf.h parser.h
 
 clean:
 	@rm -f $(TARGET) $(DEPFILES) $(OBJECTS) $(ZIP_FILE)
