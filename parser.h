@@ -15,7 +15,6 @@ class Parser {
     struct idListNode;
     struct Symbol;
     void print();
-    void loadDefaultSyms();
 
   private:
 

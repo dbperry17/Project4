@@ -113,7 +113,6 @@ void Parser::parse_program()
     if(testParse)
         cout << "\nParsing: " << "program" << endl;
 
-    loadDefaultSyms(); //my function
     //program -> var_section body
     parse_var_section();
     parse_body();
@@ -183,12 +182,12 @@ Parser::idListNode* Parser::parse_id_list()
         return result;
     }
     else
-    {
         syntax_error();
-    }
 
     if(testParseAll)
         cout << "Done Parsing: " << "id_list" << endl;
+
+    return result; //to prevent warnings
 }
 
 //body -> LBRACE stmt_list RBRACE
@@ -451,8 +450,6 @@ void Parser::parse_relop()
 
 //switch_stmt -> SWITCH ID LBRACE case_list RBRACE
 //switch_stmt -> SWITCH ID LBRACE case_list default_case RBRACE
-//TODO: switch_stmt -> SWITCH ID LBRACE case_list default_case RBRACE
-//TODO: eliminate errors
 void Parser::parse_switch_stmt()
 {
     if(testParse)
@@ -480,7 +477,7 @@ void Parser::parse_switch_stmt()
     t = peek();
 
 
-    if(t.token_type = DEFAULT)
+    if(t.token_type == DEFAULT)
     {
         parse_default_case();
         //switch_stmt -> SWITCH ID LBRACE case_list default_case RBRACE
