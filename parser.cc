@@ -7,23 +7,11 @@
 #include <cstdlib>
 #include <algorithm>
 #include "parser.h"
+#include "compiler.h"
 
 using namespace std;
 
-struct Parser::idListNode
-{
-    string id;
-    idListNode *next;
-};
-
-struct Parser::Symbol
-{
-    string id;
-    bool printed = 0;
-};
-
-
-vector<Parser::Symbol> symTable;
+vector<ValueNode> symTable;
 
 
 /***********************
@@ -89,59 +77,34 @@ void Parser::parse_program()
 //var_section -> id_list SEMICOLON
 void Parser::parse_var_section()
 {
-    //var_section -> id_list SEMICOLON
-    // var_decl -> id_list COLON type_name SEMICOLON
-    idListNode *head = parse_id_list();
-
-    //check to see if any items in list are already used
-    idListNode *current = head;
-    vector<string> idVec;
-    Symbol tmpSym;
-
-
-    while(current != NULL)
-    {
-        idVec.push_back(current->id);
-
-        //putting variables in symbol table
-        tmpSym.id = current->id;
-        symTable.push_back(tmpSym);
-
-        current = current->next;
-    }
-
+    parse_id_list();
     expect(SEMICOLON);
 }
 
 //id_list -> ID COMMA id_list | ID
-Parser::idListNode* Parser::parse_id_list()
+void Parser::parse_id_list()
 {
-     // id_list -> ID
+    // id_list -> ID
     // id_list -> ID COMMA id_list
-    Token t1 = peek();
-    idListNode *result = new idListNode;
+    ValueNode tmpSym;
+    Token t = peek();
     expect(ID);
-    Token t2 = lexer.GetToken();
-    if (t2.token_type == COMMA)
+    tmpSym.name = t.lexeme;
+    symTable.push_back(tmpSym);
+    t = lexer.GetToken();
+    if (t.token_type == COMMA)
     {
         // id_list -> ID COMMA id_list
         //General case
-        result->id = t1.lexeme;
-        result->next = parse_id_list();
-        return result;
+        parse_id_list();
     }
-    else if (t2.token_type == SEMICOLON)
+    else if (t.token_type == SEMICOLON)
     {
         // id_list -> ID
-        lexer.UngetToken(t2);
-        result->id = t1.lexeme;
-        result->next = NULL;
-        return result;
+        lexer.UngetToken(t);
     }
     else
         syntax_error();
-
-    return result; //to prevent warnings
 }
 
 //body -> LBRACE stmt_list RBRACE
@@ -424,7 +387,7 @@ int Parser::declCheck(string name)
     for(int iter = 0; iter < (int)symTable.size(); iter++)
     {
         //Remember, string comparison returns 0 if strings are equal
-        if(name.compare((symTable[iter]).id) == 0)
+        if(name.compare((symTable[iter]).name) == 0)
         {
             return iter;
         }
@@ -439,11 +402,8 @@ void Parser::print()
 {
     for(int i = 0; i < (int)symTable.size(); i++)
     {
-        if(!symTable[i].printed)
-        {
-                cout << symTable[i].id << " ";
-                symTable[i].printed = true;
-        }
+        cout << symTable[i].name << " ";
+
     }
     cout << "#" << endl;
 }
