@@ -232,17 +232,9 @@ void Parser::parse_stmt()
 //assign_stmt -> ID EQUAL expr SEMICOLON
 void Parser::parse_assign_stmt()
 {
-    Token t = peek();
-
-    //Checking for implicit declaration
-    Symbol checkSym;
-    checkSym.id = t.lexeme;
-    if(declCheck(checkSym.id) == -1)
-        symTable.push_back(checkSym);
-
     expect(ID);
     expect(EQUAL);
-    t = peek();
+    Token t = peek();
     parse_primary();
     Token t2 = peek();
     if((t2.token_type == PLUS) || (t2.token_type == MINUS) ||
@@ -272,16 +264,9 @@ void Parser::parse_expr()
 void Parser::parse_primary()
 {
     Token t = lexer.GetToken();
-    //primary -> ID
     if(t.token_type == ID)
     {
-        //check for implicity declared variables
-        if(declCheck(t.lexeme) == -1)
-        {
-            Symbol checkSym;
-            checkSym.id = t.lexeme;
-            symTable.push_back(checkSym);
-        }
+        //primary -> ID
     }
     else if(t.token_type == NUM)
     {
@@ -358,17 +343,7 @@ void Parser::parse_switch_stmt()
     expect(SWITCH);
 
     Token t = lexer.GetToken();
-    if(t.token_type == ID)
-    {
-        if (declCheck(t.lexeme) == -1) //symbol has been implicitly declared as INT
-        {
-            Symbol checkSym;
-            checkSym.id = t.lexeme;
-            symTable.push_back(checkSym);
-        }
-    }
-    else
-        syntax_error();
+    expect(ID);
 
     expect(LBRACE);
     parse_case_list();
@@ -455,7 +430,7 @@ int Parser::declCheck(string name)
         }
     }
 
-    return -1;
+    return -1; //to prevent warnings
 }
 
 
@@ -480,16 +455,3 @@ void Parser::ParseInput()
     parse_program();
     expect(END_OF_FILE);
 }
-
-/*
-int main()
-{
-    tester();
-
-    Parser parser;
-
-    parser.ParseInput();
-
-    parser.print();
-}
- */
