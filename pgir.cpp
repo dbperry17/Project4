@@ -26,6 +26,8 @@ vector<ValueNode> cons;
 
 struct StatementNode * parse_generate_intermediate_representation()
 {
+    tester();
+
     if(testing)
     {
         Parser parser;
