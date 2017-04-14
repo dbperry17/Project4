@@ -53,17 +53,17 @@ Token Parser::peek()
  * expr	        ->	primary op primary
  * primary	    ->	ID | NUM
  * op       	->	PLUS | MINUS | MULT | DIV
- * print_stmt	->	print ID SEMICOLON
  * while_stmt	->	WHILE condition body
  * if_stmt  	->	IF condition body
+ * for_stmt 	->	FOR LPAREN assign_stmt condition SEMICOLON assign_stmt RPAREN body
  * condition	->	primary relop primary
  * relop	    ->	GREATER | LESS | NOTEQUAL
  * switch_stmt	->	SWITCH ID LBRACE case_list RBRACE
  * switch_stmt	->	SWITCH ID LBRACE case_list default_case RBRACE
- * for_stmt 	->	FOR LPAREN assign_stmt condition SEMICOLON assign_stmt RPAREN body
  * case_list	->	case case_list | case
  * case	        ->	CASE NUM COLON body
  * default_case	->	DEFAULT COLON body
+ * print_stmt	->	print ID SEMICOLON
  */
 
 //program -> var_section body
@@ -252,14 +252,6 @@ void Parser::parse_op()
         syntax_error();
 }
 
-//print_stmt -> print ID SEMICOLON
-void Parser::parse_print_stmt()
-{
-    expect(PRINT);
-    expect(ID);
-    expect(SEMICOLON);
-}
-
 //while_stmt -> WHILE condition body
 void Parser::parse_while_stmt()
 {
@@ -273,6 +265,19 @@ void Parser::parse_if_stmt()
 {
     expect(IF);
     parse_condition();
+    parse_body();
+}
+
+//for_stmt -> FOR LPAREN assign_stmt condition SEMICOLON assign_stmt RPAREN body
+void Parser::parse_for_stmt()
+{
+    expect(FOR);
+    expect(LPAREN);
+    parse_assign_stmt();
+    parse_condition();
+    expect(SEMICOLON);
+    parse_assign_stmt();
+    expect(RPAREN);
     parse_body();
 }
 
@@ -323,19 +328,6 @@ void Parser::parse_switch_stmt()
     expect(RBRACE);
 }
 
-//for_stmt -> FOR LPAREN assign_stmt condition SEMICOLON assign_stmt RPAREN body
-void Parser::parse_for_stmt()
-{
-    expect(FOR);
-    expect(LPAREN);
-    parse_assign_stmt();
-    parse_condition();
-    expect(SEMICOLON);
-    parse_assign_stmt();
-    expect(RPAREN);
-    parse_body();
-}
-
 //case_list -> case case_list | case
 void Parser::parse_case_list()
 {
@@ -371,6 +363,14 @@ void Parser::parse_default_case()
     parse_body();
 }
 
+//print_stmt -> print ID SEMICOLON
+void Parser::parse_print_stmt()
+{
+    expect(PRINT);
+    expect(ID);
+    expect(SEMICOLON);
+}
+
 
 /************************************
  * Functions I created from scratch *
@@ -394,6 +394,7 @@ int Parser::declCheck(string name)
 
 
 //Print types and variables
+//for use of testing parsing only
 void Parser::print()
 {
     for(int i = 0; i < (int)symTable.size(); i++)
