@@ -8,6 +8,7 @@
 #include "parser.h"
 
 using namespace std;
+bool segfaultTest = false;
 
 vector<ValueNode*> symTable;
 struct Parser::ExprNode
@@ -48,6 +49,8 @@ Token Parser::peek()
 //Returns -1 if not found
 ValueNode* Parser::symLookup(string name)
 {
+    if(segfaultTest)
+        cout << "Starting " << "symLookup" << endl;
     ValueNode* tempNode;
     int iter = 0;
     bool found = false;
@@ -65,25 +68,42 @@ ValueNode* Parser::symLookup(string name)
     if(!found)
         tempNode = addValNode(name);
 
+    if(segfaultTest)
+        cout << "Finished " << "symLookup" << endl;
+
     return tempNode;
 }
 
 //Adds new ValueNode to symbol table
 ValueNode* Parser::addValNode(string name)
 {
+    if(segfaultTest)
+        cout << "Starting " << "addValNode" << endl;
+
     ValueNode* temp = new ValueNode;
     temp->name = "constant";
     symTable.push_back(temp);
     temp = symLookup(name); //yay recursion
+
+    if(segfaultTest)
+        cout << "Finished " << "addValNode" << endl;
+
     return temp;
 }
 
 //Turns a constant into a value node
 ValueNode* Parser::constNode(int val)
 {
+    if(segfaultTest)
+        cout << "Starting " << "constNode" << endl;
+
     ValueNode* temp = new ValueNode;
     temp->name = "constant";
     temp->value = val;
+
+    if(segfaultTest)
+        cout << "Finished " << "constNode" << endl;
+
     return temp;
 }
 
@@ -135,28 +155,42 @@ void Parser::print()
 //TODO: See if this needs anything
 void Parser::parse_program()
 {
+    if(segfaultTest)
+        cout << "Starting " << "parse_program" << endl;
+
     //program -> var_section body
     parse_var_section();
     parse_body();
+
+    if(segfaultTest)
+        cout << "Finished " << "parse_program" << endl;
 }
 
 //var_section -> id_list SEMICOLON
 //TODO: See if this needs anything
 void Parser::parse_var_section()
 {
+    if(segfaultTest)
+        cout << "Starting " << "parse_var_section" << endl;
+
     parse_id_list();
     expect(SEMICOLON);
+
+    if(segfaultTest)
+        cout << "Finished " << "parse_var_section" << endl;
 }
 
 //id_list -> ID COMMA id_list | ID
 //TODO: See if this needs anything
 void Parser::parse_id_list()
 {
+    if(segfaultTest)
+        cout << "Starting " << "parse_id_list" << endl;
+
     // id_list -> ID
     // id_list -> ID COMMA id_list
-    ValueNode* tmpSym;
-    Token t = peek();
-    expect(ID);
+    ValueNode* tmpSym = new ValueNode;
+    Token t = expect(ID);
     tmpSym->name = t.lexeme;
     symTable.push_back(tmpSym);
     t = lexer.GetToken();
@@ -173,22 +207,34 @@ void Parser::parse_id_list()
     }
     else
         syntax_error();
+
+    if(segfaultTest)
+        cout << "Finished " << "parse_id_list" << endl;
 }
 
 //body -> LBRACE stmt_list RBRACE
 //TODO: See if this needs anything
 void Parser::parse_body()
 {
+    if(segfaultTest)
+        cout << "Starting " << "parse_body" << endl;
+
     // body -> LBRACE stmt_list RBRACE
     expect(LBRACE);
     parse_stmt_list();
     expect(RBRACE);
+
+    if(segfaultTest)
+        cout << "Finished " << "parse_body" << endl;
 }
 
 //stmt_list -> stmt stmt_list | stmt
 //TODO: See if this needs anything
 void Parser::parse_stmt_list()
 {
+    if(segfaultTest)
+        cout << "Starting " << "parse_stmt_list" << endl;
+
     // stmt_list -> stmt
     // stmt_list -> stmt stmt_list
     parse_stmt();
@@ -208,6 +254,9 @@ void Parser::parse_stmt_list()
     {
         syntax_error();
     }
+
+    if(segfaultTest)
+        cout << "Finished " << "parse_stmt_list" << endl;
 }
 
 //stmt -> assign_stmt
@@ -221,6 +270,9 @@ void Parser::parse_stmt_list()
 //TODO: Check back after finishing parse_for_stmt
 StatementNode * Parser::parse_stmt()
 {
+    if(segfaultTest)
+        cout << "Starting " << "parse_stmt" << endl;
+
     StatementNode* stmt = new StatementNode;
     //stmt -> assign_stmt
     //stmt -> print_stmt
@@ -270,6 +322,9 @@ StatementNode * Parser::parse_stmt()
         syntax_error();
     }
 
+    if(segfaultTest)
+        cout << "Finished " << "parse_stmt" << endl;
+
     return stmt;
 }
 
@@ -277,6 +332,9 @@ StatementNode * Parser::parse_stmt()
 //assign_stmt -> ID EQUAL expr SEMICOLON
 AssignmentStatement* Parser::parse_assign_stmt()
 {
+    if(segfaultTest)
+        cout << "Starting " << "parse_assign_stmt" << endl;
+
     AssignmentStatement* stmt = new AssignmentStatement;
     ValueNode* tempNode;
 
@@ -309,17 +367,26 @@ AssignmentStatement* Parser::parse_assign_stmt()
 
     expect(SEMICOLON);
 
+    if(segfaultTest)
+        cout << "Finished " << "parse_assign_stmt" << endl;
+
     return stmt;
 }
 
 //expr -> primary op primary
 Parser::ExprNode* Parser::parse_expr()
 {
+    if(segfaultTest)
+        cout << "Starting " << "parse_expr" << endl;
+
     ExprNode* expr = new ExprNode;
 
     expr->op1 = parse_primary();
     expr->arith = parse_op();
     expr->op2 = parse_primary();
+
+    if(segfaultTest)
+        cout << "Finished " << "parse_expr" << endl;
 
     return expr;
 }
@@ -327,6 +394,9 @@ Parser::ExprNode* Parser::parse_expr()
 //primary -> ID | NUM
 ValueNode* Parser::parse_primary()
 {
+    if(segfaultTest)
+        cout << "Starting " << "parse_primary" << endl;
+
     ValueNode* node;
     Token t = lexer.GetToken();
     if(t.token_type == ID)
@@ -343,12 +413,18 @@ ValueNode* Parser::parse_primary()
     else
         syntax_error();
 
+    if(segfaultTest)
+        cout << "Finished " << "parse_primary" << endl;
+
     return node;
 }
 
 //op -> PLUS | MINUS | MULT | DIV
 ArithmeticOperatorType Parser::parse_op()
 {
+    if(segfaultTest)
+        cout << "Starting " << "parse_op" << endl;
+
     Token t = lexer.GetToken();
     ArithmeticOperatorType op;
     op = OPERATOR_NONE;
@@ -375,6 +451,9 @@ ArithmeticOperatorType Parser::parse_op()
     }
     else
         syntax_error();
+
+    if(segfaultTest)
+        cout << "Finished " << "parse_op" << endl;
 
     return op;
 }
@@ -435,6 +514,9 @@ void Parser::parse_condition()
 //relop -> GREATER | LESS | NOTEQUAL
 ConditionalOperatorType Parser::parse_relop()
 {
+    if(segfaultTest)
+        cout << "Starting " << "parse_relop" << endl;
+
     ConditionalOperatorType relop;
 
     Token t = lexer.GetToken();
@@ -455,6 +537,9 @@ ConditionalOperatorType Parser::parse_relop()
     }
     else
         syntax_error();
+
+    if(segfaultTest)
+        cout << "Finished " << "parse_relop" << endl;
 
     return relop;
 }
@@ -544,7 +629,13 @@ PrintStatement* Parser::parse_print_stmt()
 //TODO: See if this needs anything
 void Parser::ParseInput()
 {
+    if(segfaultTest)
+        cout << "Starting " << "parse_input" << endl;
+
     parse_program();
     expect(END_OF_FILE);
+
+    if(segfaultTest)
+        cout << "Finished " << "parse_input" << endl;
 }
 
