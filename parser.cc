@@ -44,6 +44,18 @@ Token Parser::peek()
     return t;
 }
 
+//Print types and variables
+//for use of testing parsing only
+void Parser::print()
+{
+    for(int i = 0; i < (int)symTable.size(); i++)
+    {
+        cout << symTable[i]->name << " ";
+
+    }
+    cout << "#" << endl;
+}
+
 //Check to see if item is in symbol table
 //Returns position of item if found
 //Returns -1 if not found
@@ -108,19 +120,6 @@ ValueNode* Parser::constNode(int val)
 }
 
 
-//Print types and variables
-//for use of testing parsing only
-void Parser::print()
-{
-    for(int i = 0; i < (int)symTable.size(); i++)
-    {
-        cout << symTable[i]->name << " ";
-
-    }
-    cout << "#" << endl;
-}
-
-
 /*************
  *  PARSING  *
  *************/
@@ -153,17 +152,19 @@ void Parser::print()
 
 //program -> var_section body
 //TODO: See if this needs anything
-void Parser::parse_program()
+StatementNode* Parser::parse_program()
 {
     if(segfaultTest)
         cout << "Starting " << "parse_program" << endl;
 
     //program -> var_section body
     parse_var_section();
-    parse_body();
+    StatementNode* startNode = parse_body();
 
     if(segfaultTest)
         cout << "Finished " << "parse_program" << endl;
+
+    return startNode;
 }
 
 //var_section -> id_list SEMICOLON
@@ -214,41 +215,45 @@ void Parser::parse_id_list()
 
 //body -> LBRACE stmt_list RBRACE
 //TODO: See if this needs anything
-void Parser::parse_body()
+StatementNode* Parser::parse_body()
 {
     if(segfaultTest)
         cout << "Starting " << "parse_body" << endl;
 
     // body -> LBRACE stmt_list RBRACE
     expect(LBRACE);
-    parse_stmt_list();
+    StatementNode* startNode = parse_stmt_list();
     expect(RBRACE);
 
     if(segfaultTest)
         cout << "Finished " << "parse_body" << endl;
+
+    return startNode;
 }
 
 //stmt_list -> stmt stmt_list | stmt
 //TODO: See if this needs anything
-void Parser::parse_stmt_list()
+StatementNode* Parser::parse_stmt_list()
 {
     if(segfaultTest)
         cout << "Starting " << "parse_stmt_list" << endl;
 
     // stmt_list -> stmt
     // stmt_list -> stmt stmt_list
-    parse_stmt();
+    StatementNode* node = parse_stmt();
+
     Token t = peek();
     if ((t.token_type == WHILE) || (t.token_type == ID) ||
         (t.token_type == SWITCH) || (t.token_type == PRINT) ||
         (t.token_type == FOR) || (t.token_type == IF))
     {
         // stmt_list -> stmt stmt_list
-        parse_stmt_list();
+        node->next = parse_stmt_list();
     }
     else if (t.token_type == RBRACE)
     {
         // stmt_list -> stmt
+        node->next = NULL;
     }
     else
     {
@@ -257,6 +262,8 @@ void Parser::parse_stmt_list()
 
     if(segfaultTest)
         cout << "Finished " << "parse_stmt_list" << endl;
+
+    return node;
 }
 
 //stmt -> assign_stmt
@@ -627,15 +634,19 @@ PrintStatement* Parser::parse_print_stmt()
 
 //Teacher's function
 //TODO: See if this needs anything
-void Parser::ParseInput()
+StatementNode* Parser::ParseInput()
 {
     if(segfaultTest)
         cout << "Starting " << "parse_input" << endl;
 
-    parse_program();
+    StatementNode* startNode = parse_program();
     expect(END_OF_FILE);
 
     if(segfaultTest)
         cout << "Finished " << "parse_input" << endl;
+
+    return startNode;
 }
+
+
 

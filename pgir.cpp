@@ -27,12 +27,11 @@ struct StatementNode * parse_generate_intermediate_representation()
 {
     tester();
     Parser parser;
-    parser.ParseInput();
-    parser.print();
+    StatementNode* program = parser.ParseInput();
+    //parser.print();
 
     /**
      * Return symbol table???
      */
-    //parser.parse_var_section();
-
+    return program;
 }

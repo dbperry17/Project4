@@ -24,12 +24,12 @@ class Parser {
 
 public:
     void print();
-    void ParseInput();
-    void parse_program();
+    StatementNode* ParseInput();
+    StatementNode* parse_program();
     void parse_var_section();
     void parse_id_list();
-    void parse_body();
-    void parse_stmt_list();
+    StatementNode* parse_body();
+    StatementNode* parse_stmt_list();
     StatementNode* parse_stmt();
     AssignmentStatement* parse_assign_stmt();
     ExprNode* parse_expr();
