@@ -14,15 +14,17 @@
 class Parser {
   private:
     struct ExprNode;
-
-
-  public:
-    void ParseInput();
     LexicalAnalyzer lexer;
     void syntax_error();
     Token expect(TokenType expected_type);
     Token peek();
+    ValueNode* symLookup(std::string name);
+    ValueNode* addValNode(std::string name);
+    ValueNode* constNode(int val);
 
+public:
+    void print();
+    void ParseInput();
     void parse_program();
     void parse_var_section();
     void parse_id_list();
@@ -32,20 +34,17 @@ class Parser {
     AssignmentStatement* parse_assign_stmt();
     ExprNode* parse_expr();
     ValueNode* parse_primary();
-    void parse_op();
+    ArithmeticOperatorType parse_op();
     PrintStatement* parse_print_stmt();
     IfStatement* parse_while_stmt();
     IfStatement* parse_if_stmt();
     void parse_condition();
-    void parse_relop();
+    ConditionalOperatorType parse_relop();
     IfStatement* parse_switch_stmt();
     IfStatement* parse_for_stmt();
     void parse_case_list();
     void parse_case();
     void parse_default_case();
-
-    int declCheck(std::string name);
-    void print();
 };
 
 #endif

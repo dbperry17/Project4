@@ -9,11 +9,11 @@
 
 using namespace std;
 
-vector<ValueNode> symTable;
+vector<ValueNode*> symTable;
 struct Parser::ExprNode
 {
-    ValueNode op1;
-    ValueNode op2;
+    ValueNode* op1;
+    ValueNode* op2;
     ArithmeticOperatorType arith;
 };
 
@@ -44,18 +44,47 @@ Token Parser::peek()
 }
 
 //Check to see if item is in symbol table
-int Parser::declCheck(string name)
+//Returns position of item if found
+//Returns -1 if not found
+ValueNode* Parser::symLookup(string name)
 {
-    for(int iter = 0; iter < (int)symTable.size(); iter++)
+    ValueNode* tempNode;
+    int iter = 0;
+    bool found = false;
+    for(iter = 0; iter < (int)symTable.size(); iter++)
     {
         //Remember, string comparison returns 0 if strings are equal
-        if(name.compare((symTable[iter]).name) == 0)
+        if(name.compare((symTable[iter])->name) == 0)
         {
-            return iter;
+            tempNode = symTable[iter];
+            found = true;
         }
     }
 
-    return -1; //If symbol not found
+    //Symbol not in table
+    if(!found)
+        tempNode = addValNode(name);
+
+    return tempNode;
+}
+
+//Adds new ValueNode to symbol table
+ValueNode* Parser::addValNode(string name)
+{
+    ValueNode* temp;
+    temp->name = "constant";
+    symTable.push_back(temp);
+    temp = symLookup(name); //yay recursion
+    return temp;
+}
+
+//Turns a constant into a value node
+ValueNode* Parser::constNode(int val)
+{
+    ValueNode* temp;
+    temp->name = "constant";
+    temp->value = val;
+    return temp;
 }
 
 
@@ -65,7 +94,7 @@ void Parser::print()
 {
     for(int i = 0; i < (int)symTable.size(); i++)
     {
-        cout << symTable[i].name << " ";
+        cout << symTable[i]->name << " ";
 
     }
     cout << "#" << endl;
@@ -122,10 +151,10 @@ void Parser::parse_id_list()
 {
     // id_list -> ID
     // id_list -> ID COMMA id_list
-    ValueNode tmpSym;
+    ValueNode* tmpSym;
     Token t = peek();
     expect(ID);
-    tmpSym.name = t.lexeme;
+    tmpSym->name = t.lexeme;
     symTable.push_back(tmpSym);
     t = lexer.GetToken();
     if (t.token_type == COMMA)
@@ -241,22 +270,33 @@ StatementNode * Parser::parse_stmt()
 AssignmentStatement* Parser::parse_assign_stmt()
 {
     AssignmentStatement* stmt;
+    ValueNode* tempNode;
+
     Token t = expect(ID);
-    stmt->left_hand_side->name = t.lexeme;
+    tempNode = symLookup(t.lexeme);
+    stmt->left_hand_side = tempNode;
     expect(EQUAL);
     t = peek();
-    parse_primary();
+    tempNode = parse_primary();
     Token t2 = peek();
+
     if((t2.token_type == PLUS) || (t2.token_type == MINUS) ||
        (t2.token_type == MULT) || (t2.token_type == DIV))
     {
         //assign_stmt -> ID EQUAL expr SEMICOLON
         lexer.UngetToken(t);
-        parse_expr();
+        ExprNode* exprNode;
+        exprNode = parse_expr();
+        stmt->op = exprNode->arith;
+        stmt->operand1 = exprNode->op1;
+        stmt->operand2 = exprNode->op2;
     }
     else
     {
         //assign_stmt -> ID EQUAL primary SEMICOLON
+        stmt->operand1 = tempNode;
+        stmt->op = OPERATOR_NONE;
+        stmt->operand2 = NULL;
     }
 
     expect(SEMICOLON);
@@ -269,9 +309,9 @@ ExprNode* Parser::parse_expr()
 {
     Parser::ExprNode* expr;
 
-    parse_primary();
-    parse_op();
-    parse_primary();
+    expr->op1 = parse_primary();
+    expr->arith = parse_op();
+    expr->op2 = parse_primary();
 
     return expr;
 }
@@ -284,10 +324,13 @@ ValueNode* Parser::parse_primary()
     if(t.token_type == ID)
     {
         //primary -> ID
+
+        node = symLookup(t.lexeme);
     }
     else if(t.token_type == NUM)
     {
         //primary -> NUM
+        node = constNode(stoi(t.lexeme));
     }
     else
         syntax_error();
@@ -296,13 +339,28 @@ ValueNode* Parser::parse_primary()
 }
 
 //op -> PLUS | MINUS | MULT | DIV
-void Parser::parse_op()
+ArithmeticOperatorType Parser::parse_op()
 {
     Token t = lexer.GetToken();
-    if((t.token_type == PLUS) || (t.token_type == MINUS) ||
-       (t.token_type == MULT) || (t.token_type == DIV))
+    if(t.token_type == PLUS)
     {
-        //op -> PLUS | MINUS | MULT | DIV
+        //op -> PLUS
+        return OPERATOR_PLUS;
+    }
+    else if(t.token_type == MINUS)
+    {
+        //op -> MINUS
+        return OPERATOR_MINUS;
+    }
+    else if(t.token_type == MULT)
+    {
+        //op -> MULT
+        return OPERATOR_MULT;
+    }
+    else if(t.token_type == DIV)
+    {
+        //op -> DIV
+        return OPERATOR_DIV;
     }
     else
         syntax_error();
@@ -311,9 +369,13 @@ void Parser::parse_op()
 //while_stmt -> WHILE condition body
 IfStatement* Parser::parse_while_stmt()
 {
+    IfStatement* stmt;
+
     expect(WHILE);
     parse_condition();
     parse_body();
+
+    return stmt;
 }
 
 //if_stmt -> IF condition body
@@ -331,6 +393,8 @@ IfStatement * Parser::parse_if_stmt()
 //for_stmt -> FOR LPAREN assign_stmt condition SEMICOLON assign_stmt RPAREN body
 IfStatement* Parser::parse_for_stmt()
 {
+    IfStatement* stmt;
+
     expect(FOR);
     expect(LPAREN);
     parse_assign_stmt();
@@ -339,6 +403,8 @@ IfStatement* Parser::parse_for_stmt()
     parse_assign_stmt();
     expect(RPAREN);
     parse_body();
+
+    return stmt;
 }
 
 //condition -> primary relop primary
@@ -350,7 +416,7 @@ void Parser::parse_condition()
 }
 
 //relop -> GREATER | LESS | NOTEQUAL
-void Parser::parse_relop()
+ConditionalOperatorType Parser::parse_relop()
 {
     Token t = lexer.GetToken();
     if((t.token_type == GREATER) || (t.token_type == LESS) || (t.token_type == NOTEQUAL))
