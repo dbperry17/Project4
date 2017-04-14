@@ -302,16 +302,12 @@ void Parser::parse_relop()
 //switch_stmt -> SWITCH ID LBRACE case_list default_case RBRACE
 void Parser::parse_switch_stmt()
 {
-    //type mismatch check
     expect(SWITCH);
-
-    Token t = lexer.GetToken();
     expect(ID);
-
     expect(LBRACE);
     parse_case_list();
 
-    t = peek();
+    Token t = peek();
 
 
     if(t.token_type == DEFAULT)
