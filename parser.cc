@@ -8,7 +8,7 @@
 #include "parser.h"
 
 using namespace std;
-bool segfaultTest = false;
+bool errorFind = true;
 
 vector<ValueNode*> symTable;
 struct Parser::ExprNode
@@ -17,6 +17,24 @@ struct Parser::ExprNode
     ValueNode* op2;
     ArithmeticOperatorType arith;
 };
+
+struct Parser::CondNode
+{
+    ValueNode* op1;
+    ValueNode* op2;
+    ConditionalOperatorType condType;
+};
+
+/********************************************************************
+ *                                                                  *
+ * NOTE: I am aware we "can assume that there are no syntax or      *
+ *       semantic errors in the input program." However, I found    *
+ *       checking for syntax errors to be useful while altering     *
+ *       the parsing functions so that I could make sure I didn't   *
+ *       mess anything up, so I have chosen to keep that bit of     *
+ *       code.                                                      *
+ *                                                                  *
+ ********************************************************************/
 
 /**********************
  *  HELPER FUNCTIONS  *
@@ -57,11 +75,9 @@ void Parser::print()
 }
 
 //Check to see if item is in symbol table
-//Returns position of item if found
-//Returns -1 if not found
 ValueNode* Parser::symLookup(string name)
 {
-    if(segfaultTest)
+    if(errorFind)
         cout << "Starting " << "symLookup" << endl;
     ValueNode* tempNode;
     int iter = 0;
@@ -76,11 +92,11 @@ ValueNode* Parser::symLookup(string name)
         }
     }
 
-    //Symbol not in table
+    //Symbol not in table, so add it
     if(!found)
         tempNode = addValNode(name);
 
-    if(segfaultTest)
+    if(errorFind)
         cout << "Finished " << "symLookup" << endl;
 
     return tempNode;
@@ -89,7 +105,7 @@ ValueNode* Parser::symLookup(string name)
 //Adds new ValueNode to symbol table
 ValueNode* Parser::addValNode(string name)
 {
-    if(segfaultTest)
+    if(errorFind)
         cout << "Starting " << "addValNode" << endl;
 
     ValueNode* temp = new ValueNode;
@@ -97,7 +113,7 @@ ValueNode* Parser::addValNode(string name)
     symTable.push_back(temp);
     temp = symLookup(name); //yay recursion
 
-    if(segfaultTest)
+    if(errorFind)
         cout << "Finished " << "addValNode" << endl;
 
     return temp;
@@ -106,14 +122,14 @@ ValueNode* Parser::addValNode(string name)
 //Turns a constant into a value node
 ValueNode* Parser::constNode(int val)
 {
-    if(segfaultTest)
+    if(errorFind)
         cout << "Starting " << "constNode" << endl;
 
     ValueNode* temp = new ValueNode;
     temp->name = "constant";
     temp->value = val;
 
-    if(segfaultTest)
+    if(errorFind)
         cout << "Finished " << "constNode" << endl;
 
     return temp;
@@ -151,33 +167,32 @@ ValueNode* Parser::constNode(int val)
  */
 
 //program -> var_section body
-//TODO: See if this needs anything
 StatementNode* Parser::parse_program()
 {
-    if(segfaultTest)
+    if(errorFind)
         cout << "Starting " << "parse_program" << endl;
 
     //program -> var_section body
     parse_var_section();
-    StatementNode* startNode = parse_body();
+    StatementNode* node = parse_body();
 
-    if(segfaultTest)
+    if(errorFind)
         cout << "Finished " << "parse_program" << endl;
 
-    return startNode;
+    return node;
 }
 
 //var_section -> id_list SEMICOLON
 //TODO: See if this needs anything
 void Parser::parse_var_section()
 {
-    if(segfaultTest)
+    if(errorFind)
         cout << "Starting " << "parse_var_section" << endl;
 
     parse_id_list();
     expect(SEMICOLON);
 
-    if(segfaultTest)
+    if(errorFind)
         cout << "Finished " << "parse_var_section" << endl;
 }
 
@@ -185,7 +200,7 @@ void Parser::parse_var_section()
 //TODO: See if this needs anything
 void Parser::parse_id_list()
 {
-    if(segfaultTest)
+    if(errorFind)
         cout << "Starting " << "parse_id_list" << endl;
 
     // id_list -> ID
@@ -209,33 +224,31 @@ void Parser::parse_id_list()
     else
         syntax_error();
 
-    if(segfaultTest)
+    if(errorFind)
         cout << "Finished " << "parse_id_list" << endl;
 }
 
 //body -> LBRACE stmt_list RBRACE
-//TODO: See if this needs anything
 StatementNode* Parser::parse_body()
 {
-    if(segfaultTest)
+    if(errorFind)
         cout << "Starting " << "parse_body" << endl;
 
     // body -> LBRACE stmt_list RBRACE
     expect(LBRACE);
-    StatementNode* startNode = parse_stmt_list();
+    StatementNode* node = parse_stmt_list();
     expect(RBRACE);
 
-    if(segfaultTest)
+    if(errorFind)
         cout << "Finished " << "parse_body" << endl;
 
-    return startNode;
+    return node;
 }
 
 //stmt_list -> stmt stmt_list | stmt
-//TODO: See if this needs anything
 StatementNode* Parser::parse_stmt_list()
 {
-    if(segfaultTest)
+    if(errorFind)
         cout << "Starting " << "parse_stmt_list" << endl;
 
     // stmt_list -> stmt
@@ -249,6 +262,12 @@ StatementNode* Parser::parse_stmt_list()
     {
         // stmt_list -> stmt stmt_list
         node->next = parse_stmt_list();
+
+        if(t.token_type == IF)
+        {
+            node->next = node->if_stmt->false_branch;
+            node->next->next = parse_stmt_list();
+        }
     }
     else if (t.token_type == RBRACE)
     {
@@ -260,7 +279,7 @@ StatementNode* Parser::parse_stmt_list()
         syntax_error();
     }
 
-    if(segfaultTest)
+    if(errorFind)
         cout << "Finished " << "parse_stmt_list" << endl;
 
     return node;
@@ -277,10 +296,14 @@ StatementNode* Parser::parse_stmt_list()
 //TODO: Check back after finishing parse_for_stmt
 StatementNode * Parser::parse_stmt()
 {
-    if(segfaultTest)
+    if(errorFind)
         cout << "Starting " << "parse_stmt" << endl;
 
     StatementNode* stmt = new StatementNode;
+
+    StatementNode* noOpNode = new StatementNode;
+    noOpNode->type = NOOP_STMT;
+
     //stmt -> assign_stmt
     //stmt -> print_stmt
     //stmt -> while_stmt
@@ -311,6 +334,20 @@ StatementNode * Parser::parse_stmt()
         //stmt -> if_stmt
         stmt->type = IF_STMT;
         stmt->if_stmt = parse_if_stmt();
+
+        StatementNode* current = stmt->if_stmt->true_branch;
+
+        //Find end of if's body
+        while(current->next != NULL)
+        {
+            current = current->next;
+        }
+
+        //append no-op node to end of if's body
+        current->next = noOpNode;
+
+        stmt->if_stmt->false_branch = noOpNode;
+        stmt->next = noOpNode;
     }
     else if (t.token_type == SWITCH)
     {
@@ -329,7 +366,7 @@ StatementNode * Parser::parse_stmt()
         syntax_error();
     }
 
-    if(segfaultTest)
+    if(errorFind)
         cout << "Finished " << "parse_stmt" << endl;
 
     return stmt;
@@ -339,7 +376,7 @@ StatementNode * Parser::parse_stmt()
 //assign_stmt -> ID EQUAL expr SEMICOLON
 AssignmentStatement* Parser::parse_assign_stmt()
 {
-    if(segfaultTest)
+    if(errorFind)
         cout << "Starting " << "parse_assign_stmt" << endl;
 
     AssignmentStatement* stmt = new AssignmentStatement;
@@ -374,7 +411,7 @@ AssignmentStatement* Parser::parse_assign_stmt()
 
     expect(SEMICOLON);
 
-    if(segfaultTest)
+    if(errorFind)
         cout << "Finished " << "parse_assign_stmt" << endl;
 
     return stmt;
@@ -383,7 +420,7 @@ AssignmentStatement* Parser::parse_assign_stmt()
 //expr -> primary op primary
 Parser::ExprNode* Parser::parse_expr()
 {
-    if(segfaultTest)
+    if(errorFind)
         cout << "Starting " << "parse_expr" << endl;
 
     ExprNode* expr = new ExprNode;
@@ -392,7 +429,7 @@ Parser::ExprNode* Parser::parse_expr()
     expr->arith = parse_op();
     expr->op2 = parse_primary();
 
-    if(segfaultTest)
+    if(errorFind)
         cout << "Finished " << "parse_expr" << endl;
 
     return expr;
@@ -401,7 +438,7 @@ Parser::ExprNode* Parser::parse_expr()
 //primary -> ID | NUM
 ValueNode* Parser::parse_primary()
 {
-    if(segfaultTest)
+    if(errorFind)
         cout << "Starting " << "parse_primary" << endl;
 
     ValueNode* node;
@@ -420,7 +457,7 @@ ValueNode* Parser::parse_primary()
     else
         syntax_error();
 
-    if(segfaultTest)
+    if(errorFind)
         cout << "Finished " << "parse_primary" << endl;
 
     return node;
@@ -429,7 +466,7 @@ ValueNode* Parser::parse_primary()
 //op -> PLUS | MINUS | MULT | DIV
 ArithmeticOperatorType Parser::parse_op()
 {
-    if(segfaultTest)
+    if(errorFind)
         cout << "Starting " << "parse_op" << endl;
 
     Token t = lexer.GetToken();
@@ -459,7 +496,7 @@ ArithmeticOperatorType Parser::parse_op()
     else
         syntax_error();
 
-    if(segfaultTest)
+    if(errorFind)
         cout << "Finished " << "parse_op" << endl;
 
     return op;
@@ -483,10 +520,14 @@ IfStatement* Parser::parse_while_stmt()
 IfStatement * Parser::parse_if_stmt()
 {
     IfStatement* stmt = new IfStatement;
+    CondNode* condNode = new CondNode;
 
     expect(IF);
-    parse_condition();
-    parse_body();
+    condNode = parse_condition();
+    stmt->condition_operand1 = condNode->op1;
+    stmt->condition_op = condNode->condType;
+    stmt->condition_operand2 = condNode->op2;
+    stmt->true_branch = parse_body();
 
     return stmt;
 }
@@ -510,18 +551,21 @@ IfStatement* Parser::parse_for_stmt()
 }
 
 //condition -> primary relop primary
-//TODO: Work on parse_condition
-void Parser::parse_condition()
+Parser::CondNode* Parser::parse_condition()
 {
-    parse_primary();
-    parse_relop();
-    parse_primary();
+    CondNode* node = new CondNode;
+
+    node->op1 = parse_primary();
+    node->condType = parse_relop();
+    node->op2 = parse_primary();
+
+    return node;
 }
 
 //relop -> GREATER | LESS | NOTEQUAL
 ConditionalOperatorType Parser::parse_relop()
 {
-    if(segfaultTest)
+    if(errorFind)
         cout << "Starting " << "parse_relop" << endl;
 
     ConditionalOperatorType relop;
@@ -545,7 +589,7 @@ ConditionalOperatorType Parser::parse_relop()
     else
         syntax_error();
 
-    if(segfaultTest)
+    if(errorFind)
         cout << "Finished " << "parse_relop" << endl;
 
     return relop;
@@ -636,13 +680,13 @@ PrintStatement* Parser::parse_print_stmt()
 //TODO: See if this needs anything
 StatementNode* Parser::ParseInput()
 {
-    if(segfaultTest)
+    if(errorFind)
         cout << "Starting " << "parse_input" << endl;
 
     StatementNode* startNode = parse_program();
     expect(END_OF_FILE);
 
-    if(segfaultTest)
+    if(errorFind)
         cout << "Finished " << "parse_input" << endl;
 
     return startNode;

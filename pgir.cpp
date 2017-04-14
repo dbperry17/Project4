@@ -17,8 +17,6 @@ void tester()
     }
 }
 
-vector<ValueNode> vars;
-
 /**********
  *  PGIR  *
  **********/
