@@ -71,7 +71,7 @@ ValueNode* Parser::symLookup(string name)
 //Adds new ValueNode to symbol table
 ValueNode* Parser::addValNode(string name)
 {
-    ValueNode* temp;
+    ValueNode* temp = new ValueNode;
     temp->name = "constant";
     symTable.push_back(temp);
     temp = symLookup(name); //yay recursion
@@ -81,7 +81,7 @@ ValueNode* Parser::addValNode(string name)
 //Turns a constant into a value node
 ValueNode* Parser::constNode(int val)
 {
-    ValueNode* temp;
+    ValueNode* temp = new ValueNode;
     temp->name = "constant";
     temp->value = val;
     return temp;
@@ -132,6 +132,7 @@ void Parser::print()
  */
 
 //program -> var_section body
+//TODO: See if this needs anything
 void Parser::parse_program()
 {
     //program -> var_section body
@@ -140,6 +141,7 @@ void Parser::parse_program()
 }
 
 //var_section -> id_list SEMICOLON
+//TODO: See if this needs anything
 void Parser::parse_var_section()
 {
     parse_id_list();
@@ -147,6 +149,7 @@ void Parser::parse_var_section()
 }
 
 //id_list -> ID COMMA id_list | ID
+//TODO: See if this needs anything
 void Parser::parse_id_list()
 {
     // id_list -> ID
@@ -173,6 +176,7 @@ void Parser::parse_id_list()
 }
 
 //body -> LBRACE stmt_list RBRACE
+//TODO: See if this needs anything
 void Parser::parse_body()
 {
     // body -> LBRACE stmt_list RBRACE
@@ -182,6 +186,7 @@ void Parser::parse_body()
 }
 
 //stmt_list -> stmt stmt_list | stmt
+//TODO: See if this needs anything
 void Parser::parse_stmt_list()
 {
     // stmt_list -> stmt
@@ -211,9 +216,12 @@ void Parser::parse_stmt_list()
 //stmt -> if_stmt
 //stmt -> switch_stmt
 //stmt -> for_stmt
+//TODO: Check back after finishing parse_while_stmt
+//TODO: Check back after finishing parse_switch_stmt
+//TODO: Check back after finishing parse_for_stmt
 StatementNode * Parser::parse_stmt()
 {
-    StatementNode* stmt;
+    StatementNode* stmt = new StatementNode;
     //stmt -> assign_stmt
     //stmt -> print_stmt
     //stmt -> while_stmt
@@ -269,7 +277,7 @@ StatementNode * Parser::parse_stmt()
 //assign_stmt -> ID EQUAL expr SEMICOLON
 AssignmentStatement* Parser::parse_assign_stmt()
 {
-    AssignmentStatement* stmt;
+    AssignmentStatement* stmt = new AssignmentStatement;
     ValueNode* tempNode;
 
     Token t = expect(ID);
@@ -305,9 +313,9 @@ AssignmentStatement* Parser::parse_assign_stmt()
 }
 
 //expr -> primary op primary
-ExprNode* Parser::parse_expr()
+Parser::ExprNode* Parser::parse_expr()
 {
-    Parser::ExprNode* expr;
+    ExprNode* expr = new ExprNode;
 
     expr->op1 = parse_primary();
     expr->arith = parse_op();
@@ -342,34 +350,40 @@ ValueNode* Parser::parse_primary()
 ArithmeticOperatorType Parser::parse_op()
 {
     Token t = lexer.GetToken();
+    ArithmeticOperatorType op;
+    op = OPERATOR_NONE;
+
     if(t.token_type == PLUS)
     {
         //op -> PLUS
-        return OPERATOR_PLUS;
+        op = OPERATOR_PLUS;
     }
     else if(t.token_type == MINUS)
     {
         //op -> MINUS
-        return OPERATOR_MINUS;
+        op = OPERATOR_MINUS;
     }
     else if(t.token_type == MULT)
     {
         //op -> MULT
-        return OPERATOR_MULT;
+        op = OPERATOR_MULT;
     }
     else if(t.token_type == DIV)
     {
         //op -> DIV
-        return OPERATOR_DIV;
+        op = OPERATOR_DIV;
     }
     else
         syntax_error();
+
+    return op;
 }
 
 //while_stmt -> WHILE condition body
+//TODO: Work on parse_while_stmt
 IfStatement* Parser::parse_while_stmt()
 {
-    IfStatement* stmt;
+    IfStatement* stmt = new IfStatement;
 
     expect(WHILE);
     parse_condition();
@@ -379,9 +393,10 @@ IfStatement* Parser::parse_while_stmt()
 }
 
 //if_stmt -> IF condition body
+//TODO: Work on parse_if_stmt
 IfStatement * Parser::parse_if_stmt()
 {
-    IfStatement* stmt;
+    IfStatement* stmt = new IfStatement;
 
     expect(IF);
     parse_condition();
@@ -391,9 +406,10 @@ IfStatement * Parser::parse_if_stmt()
 }
 
 //for_stmt -> FOR LPAREN assign_stmt condition SEMICOLON assign_stmt RPAREN body
+//TODO: Work on parse_for_stmt
 IfStatement* Parser::parse_for_stmt()
 {
-    IfStatement* stmt;
+    IfStatement* stmt = new IfStatement;
 
     expect(FOR);
     expect(LPAREN);
@@ -408,6 +424,7 @@ IfStatement* Parser::parse_for_stmt()
 }
 
 //condition -> primary relop primary
+//TODO: Work on parse_condition
 void Parser::parse_condition()
 {
     parse_primary();
@@ -418,22 +435,36 @@ void Parser::parse_condition()
 //relop -> GREATER | LESS | NOTEQUAL
 ConditionalOperatorType Parser::parse_relop()
 {
+    ConditionalOperatorType relop;
+
     Token t = lexer.GetToken();
-    if((t.token_type == GREATER) || (t.token_type == LESS) || (t.token_type == NOTEQUAL))
+    if (t.token_type == GREATER)
     {
         //relop-> GREATER
+        relop = CONDITION_GREATER;
+    }
+    else if (t.token_type == LESS)
+    {
         //relop-> LESS
+        relop = CONDITION_LESS;
+    }
+    else if (t.token_type == NOTEQUAL)
+    {
         //relop-> NOTEQUAL
+        relop = CONDITION_NOTEQUAL;
     }
     else
         syntax_error();
+
+    return relop;
 }
 
 //switch_stmt -> SWITCH ID LBRACE case_list RBRACE
 //switch_stmt -> SWITCH ID LBRACE case_list default_case RBRACE
+//TODO: Work on parse_switch_stmt
 IfStatement* Parser::parse_switch_stmt()
 {
-    IfStatement* stmt;
+    IfStatement* stmt = new IfStatement;
 
     expect(SWITCH);
     expect(ID);
@@ -459,6 +490,7 @@ IfStatement* Parser::parse_switch_stmt()
 }
 
 //case_list -> case case_list | case
+//TODO: Work on parse_case_list
 void Parser::parse_case_list()
 {
     parse_case();
@@ -477,6 +509,7 @@ void Parser::parse_case_list()
 }
 
 //case -> CASE NUM COLON body
+//TODO: Work on parse_case
 void Parser::parse_case()
 {
     expect(CASE);
@@ -486,6 +519,7 @@ void Parser::parse_case()
 }
 
 //default_case -> DEFAULT COLON body
+//TODO: Work on parse_default_case
 void Parser::parse_default_case()
 {
     expect(DEFAULT);
@@ -496,15 +530,18 @@ void Parser::parse_default_case()
 //print_stmt -> print ID SEMICOLON
 PrintStatement* Parser::parse_print_stmt()
 {
-    PrintStatement* stmt;
+    PrintStatement* stmt = new PrintStatement;
+
     expect(PRINT);
-    expect(ID);
+    Token t = expect(ID);
+    stmt->id = symLookup(t.lexeme);
     expect(SEMICOLON);
 
     return stmt;
 }
 
 //Teacher's function
+//TODO: See if this needs anything
 void Parser::ParseInput()
 {
     parse_program();
