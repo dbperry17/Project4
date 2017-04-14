@@ -4,19 +4,22 @@
  * Do not share this file with anyone
  */
 #include <iostream>
-#include <cstdlib>
 #include <algorithm>
 #include "parser.h"
-#include "compiler.h"
 
 using namespace std;
 
 vector<ValueNode> symTable;
+struct Parser::ExprNode
+{
+    ValueNode op1;
+    ValueNode op2;
+    ArithmeticOperatorType arith;
+};
 
-
-/***********************
- * Teacher's functions *
- ***********************/
+/**********************
+ *  HELPER FUNCTIONS  *
+ **********************/
 
 void Parser::syntax_error()
 {
@@ -39,6 +42,39 @@ Token Parser::peek()
     lexer.UngetToken(t);
     return t;
 }
+
+//Check to see if item is in symbol table
+int Parser::declCheck(string name)
+{
+    for(int iter = 0; iter < (int)symTable.size(); iter++)
+    {
+        //Remember, string comparison returns 0 if strings are equal
+        if(name.compare((symTable[iter]).name) == 0)
+        {
+            return iter;
+        }
+    }
+
+    return -1; //If symbol not found
+}
+
+
+//Print types and variables
+//for use of testing parsing only
+void Parser::print()
+{
+    for(int i = 0; i < (int)symTable.size(); i++)
+    {
+        cout << symTable[i].name << " ";
+
+    }
+    cout << "#" << endl;
+}
+
+
+/*************
+ *  PARSING  *
+ *************/
 
 // Parsing
 /*
@@ -146,8 +182,9 @@ void Parser::parse_stmt_list()
 //stmt -> if_stmt
 //stmt -> switch_stmt
 //stmt -> for_stmt
-void Parser::parse_stmt()
+StatementNode * Parser::parse_stmt()
 {
+    StatementNode* stmt;
     //stmt -> assign_stmt
     //stmt -> print_stmt
     //stmt -> while_stmt
@@ -158,46 +195,56 @@ void Parser::parse_stmt()
     if (t.token_type == ID)
     {
         // stmt -> assign_stmt
-        parse_assign_stmt();
+        stmt->type = ASSIGN_STMT;
+        stmt->assign_stmt = parse_assign_stmt();
     }
     else if (t.token_type == PRINT)
     {
         //stmt -> print_stmt
-        parse_print_stmt();
+        stmt->type = PRINT_STMT;
+        stmt->print_stmt = parse_print_stmt();
     }
     else if (t.token_type == WHILE)
     {
         // stmt -> while_stmt
-        parse_while_stmt();
+        stmt->type = IF_STMT;
+        stmt->if_stmt = parse_while_stmt();
     }
     else if (t.token_type == IF)
     {
         //stmt -> if_stmt
-        parse_if_stmt();
+        stmt->type = IF_STMT;
+        stmt->if_stmt = parse_if_stmt();
     }
     else if (t.token_type == SWITCH)
     {
         // stmt -> switch_stmt
-        parse_switch_stmt();
+        stmt->type = IF_STMT;
+        stmt->if_stmt = parse_switch_stmt();
     }
     else if (t.token_type == FOR)
     {
         //stmt -> for_stmt
-        parse_for_stmt();
+        stmt->type = IF_STMT;
+        stmt->if_stmt = parse_for_stmt();
     }
     else
     {
         syntax_error();
     }
+
+    return stmt;
 }
 
 //assign_stmt -> ID EQUAL primary SEMICOLON
 //assign_stmt -> ID EQUAL expr SEMICOLON
-void Parser::parse_assign_stmt()
+AssignmentStatement* Parser::parse_assign_stmt()
 {
-    expect(ID);
+    AssignmentStatement* stmt;
+    Token t = expect(ID);
+    stmt->left_hand_side->name = t.lexeme;
     expect(EQUAL);
-    Token t = peek();
+    t = peek();
     parse_primary();
     Token t2 = peek();
     if((t2.token_type == PLUS) || (t2.token_type == MINUS) ||
@@ -213,19 +260,26 @@ void Parser::parse_assign_stmt()
     }
 
     expect(SEMICOLON);
+
+    return stmt;
 }
 
 //expr -> primary op primary
-void Parser::parse_expr()
+ExprNode* Parser::parse_expr()
 {
+    Parser::ExprNode* expr;
+
     parse_primary();
     parse_op();
     parse_primary();
+
+    return expr;
 }
 
 //primary -> ID | NUM
-void Parser::parse_primary()
+ValueNode* Parser::parse_primary()
 {
+    ValueNode* node;
     Token t = lexer.GetToken();
     if(t.token_type == ID)
     {
@@ -237,6 +291,8 @@ void Parser::parse_primary()
     }
     else
         syntax_error();
+
+    return node;
 }
 
 //op -> PLUS | MINUS | MULT | DIV
@@ -253,7 +309,7 @@ void Parser::parse_op()
 }
 
 //while_stmt -> WHILE condition body
-void Parser::parse_while_stmt()
+IfStatement* Parser::parse_while_stmt()
 {
     expect(WHILE);
     parse_condition();
@@ -261,15 +317,19 @@ void Parser::parse_while_stmt()
 }
 
 //if_stmt -> IF condition body
-void Parser::parse_if_stmt()
+IfStatement * Parser::parse_if_stmt()
 {
+    IfStatement* stmt;
+
     expect(IF);
     parse_condition();
     parse_body();
+
+    return stmt;
 }
 
 //for_stmt -> FOR LPAREN assign_stmt condition SEMICOLON assign_stmt RPAREN body
-void Parser::parse_for_stmt()
+IfStatement* Parser::parse_for_stmt()
 {
     expect(FOR);
     expect(LPAREN);
@@ -305,8 +365,10 @@ void Parser::parse_relop()
 
 //switch_stmt -> SWITCH ID LBRACE case_list RBRACE
 //switch_stmt -> SWITCH ID LBRACE case_list default_case RBRACE
-void Parser::parse_switch_stmt()
+IfStatement* Parser::parse_switch_stmt()
 {
+    IfStatement* stmt;
+
     expect(SWITCH);
     expect(ID);
     expect(LBRACE);
@@ -326,6 +388,8 @@ void Parser::parse_switch_stmt()
     }
 
     expect(RBRACE);
+
+    return stmt;
 }
 
 //case_list -> case case_list | case
@@ -364,47 +428,15 @@ void Parser::parse_default_case()
 }
 
 //print_stmt -> print ID SEMICOLON
-void Parser::parse_print_stmt()
+PrintStatement* Parser::parse_print_stmt()
 {
+    PrintStatement* stmt;
     expect(PRINT);
     expect(ID);
     expect(SEMICOLON);
+
+    return stmt;
 }
-
-
-/************************************
- * Functions I created from scratch *
- ************************************/
-
-
-//Check to see if item is in symbol table
-int Parser::declCheck(string name)
-{
-    for(int iter = 0; iter < (int)symTable.size(); iter++)
-    {
-        //Remember, string comparison returns 0 if strings are equal
-        if(name.compare((symTable[iter]).name) == 0)
-        {
-            return iter;
-        }
-    }
-
-    return -1; //to prevent warnings
-}
-
-
-//Print types and variables
-//for use of testing parsing only
-void Parser::print()
-{
-    for(int i = 0; i < (int)symTable.size(); i++)
-    {
-        cout << symTable[i].name << " ";
-
-    }
-    cout << "#" << endl;
-}
-
 
 //Teacher's function
 void Parser::ParseInput()
@@ -412,3 +444,4 @@ void Parser::ParseInput()
     parse_program();
     expect(END_OF_FILE);
 }
+

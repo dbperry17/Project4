@@ -1,7 +1,5 @@
 #include <iostream>
-#include "compiler.h"
 #include "parser.h"
-//#include "lexer.h" //only needed if not including parser.h
 
 using namespace std;
 
@@ -30,7 +28,7 @@ struct StatementNode * parse_generate_intermediate_representation()
     tester();
     Parser parser;
     parser.ParseInput();
-    //parser.print();
+    parser.print();
 
     /**
      * Return symbol table???
@@ -38,4 +36,3 @@ struct StatementNode * parse_generate_intermediate_representation()
     //parser.parse_var_section();
 
 }
-
