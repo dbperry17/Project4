@@ -8,7 +8,7 @@
 #include "parser.h"
 
 using namespace std;
-bool errorFind = true;
+bool errorFind = false;
 
 vector<ValueNode*> symTable;
 struct Parser::ExprNode
@@ -153,8 +153,8 @@ ValueNode* Parser::constNode(int val)
  * expr	        ->	primary op primary
  * primary	    ->	ID | NUM
  * op       	->	PLUS | MINUS | MULT | DIV
- * while_stmt	->	WHILE condition body
  * if_stmt  	->	IF condition body
+ * while_stmt	->	WHILE condition body
  * for_stmt 	->	FOR LPAREN assign_stmt condition SEMICOLON assign_stmt RPAREN body
  * condition	->	primary relop primary
  * relop	    ->	GREATER | LESS | NOTEQUAL
@@ -232,7 +232,7 @@ void Parser::parse_id_list()
 StatementNode* Parser::parse_body()
 {
     if(errorFind)
-        cout << "Starting " << "parse_body" << endl;
+        cout << "\n\nStarting " << "parse_body" << endl;
 
     // body -> LBRACE stmt_list RBRACE
     expect(LBRACE);
@@ -254,6 +254,7 @@ StatementNode* Parser::parse_stmt_list()
     // stmt_list -> stmt
     // stmt_list -> stmt stmt_list
     StatementNode* node = parse_stmt();
+    StatementNode* nodeList;
 
     Token t = peek();
     if ((t.token_type == WHILE) || (t.token_type == ID) ||
@@ -261,13 +262,15 @@ StatementNode* Parser::parse_stmt_list()
         (t.token_type == FOR) || (t.token_type == IF))
     {
         // stmt_list -> stmt stmt_list
-        node->next = parse_stmt_list();
+        nodeList = parse_stmt_list();
 
-        if(t.token_type == IF)
+        if(node->type == IF_STMT)
         {
             node->next = node->if_stmt->false_branch;
-            node->next->next = parse_stmt_list();
+            node->next->next = nodeList;
         }
+        else
+            node->next = nodeList;
     }
     else if (t.token_type == RBRACE)
     {
@@ -280,7 +283,9 @@ StatementNode* Parser::parse_stmt_list()
     }
 
     if(errorFind)
+    {
         cout << "Finished " << "parse_stmt_list" << endl;
+    }
 
     return node;
 }
@@ -301,9 +306,6 @@ StatementNode * Parser::parse_stmt()
 
     StatementNode* stmt = new StatementNode;
 
-    StatementNode* noOpNode = new StatementNode;
-    noOpNode->type = NOOP_STMT;
-
     //stmt -> assign_stmt
     //stmt -> print_stmt
     //stmt -> while_stmt
@@ -311,53 +313,53 @@ StatementNode * Parser::parse_stmt()
     //stmt -> switch_stmt
     //stmt -> for_stmt
     Token t = peek();
+
     if (t.token_type == ID)
     {
         // stmt -> assign_stmt
+        if(errorFind)
+            cout << "\nStatement type: Assign" << endl;
         stmt->type = ASSIGN_STMT;
         stmt->assign_stmt = parse_assign_stmt();
     }
     else if (t.token_type == PRINT)
     {
         //stmt -> print_stmt
+        if(errorFind)
+            cout << "\nStatement type: Print" << endl;
         stmt->type = PRINT_STMT;
         stmt->print_stmt = parse_print_stmt();
     }
     else if (t.token_type == WHILE)
     {
         // stmt -> while_stmt
+        if(errorFind)
+            cout << "\nStatement type: While" << endl;
         stmt->type = IF_STMT;
         stmt->if_stmt = parse_while_stmt();
     }
     else if (t.token_type == IF)
     {
         //stmt -> if_stmt
+        if(errorFind)
+            cout << "\nStatement type: If" << endl;
         stmt->type = IF_STMT;
         stmt->if_stmt = parse_if_stmt();
-
-        StatementNode* current = stmt->if_stmt->true_branch;
-
-        //Find end of if's body
-        while(current->next != NULL)
-        {
-            current = current->next;
-        }
-
-        //append no-op node to end of if's body
-        current->next = noOpNode;
-
-        stmt->if_stmt->false_branch = noOpNode;
-        stmt->next = noOpNode;
+        stmt->next = stmt->if_stmt->false_branch;
     }
     else if (t.token_type == SWITCH)
     {
         // stmt -> switch_stmt
+        if(errorFind)
+            cout << "\nStatement type: Switch" << endl;
         stmt->type = IF_STMT;
         stmt->if_stmt = parse_switch_stmt();
     }
     else if (t.token_type == FOR)
     {
         //stmt -> for_stmt
+        if(errorFind)
+            cout << "\nStatement type: For" << endl;
         stmt->type = IF_STMT;
         stmt->if_stmt = parse_for_stmt();
     }
@@ -502,6 +504,38 @@ ArithmeticOperatorType Parser::parse_op()
     return op;
 }
 
+//if_stmt -> IF condition body
+//TODO: Work on parse_if_stmt
+IfStatement * Parser::parse_if_stmt()
+{
+    IfStatement* stmt = new IfStatement;
+    StatementNode* noOpNode = new StatementNode;
+    noOpNode->type = NOOP_STMT;
+
+    CondNode* condNode;
+
+    expect(IF);
+    condNode = parse_condition();
+    stmt->condition_operand1 = condNode->op1;
+    stmt->condition_op = condNode->condType;
+    stmt->condition_operand2 = condNode->op2;
+    stmt->true_branch = parse_body();
+
+    StatementNode* current = stmt->true_branch;
+    //Find end of if's body
+    while(current->next != NULL)
+    {
+        current = current->next;
+    }
+
+    //append no-op node to end of if's body
+    current->next = noOpNode;
+    stmt->false_branch = noOpNode;
+
+    return stmt;
+}
+
+
 //while_stmt -> WHILE condition body
 //TODO: Work on parse_while_stmt
 IfStatement* Parser::parse_while_stmt()
@@ -511,23 +545,6 @@ IfStatement* Parser::parse_while_stmt()
     expect(WHILE);
     parse_condition();
     parse_body();
-
-    return stmt;
-}
-
-//if_stmt -> IF condition body
-//TODO: Work on parse_if_stmt
-IfStatement * Parser::parse_if_stmt()
-{
-    IfStatement* stmt = new IfStatement;
-    CondNode* condNode = new CondNode;
-
-    expect(IF);
-    condNode = parse_condition();
-    stmt->condition_operand1 = condNode->op1;
-    stmt->condition_op = condNode->condType;
-    stmt->condition_operand2 = condNode->op2;
-    stmt->true_branch = parse_body();
 
     return stmt;
 }
@@ -666,12 +683,18 @@ void Parser::parse_default_case()
 //print_stmt -> print ID SEMICOLON
 PrintStatement* Parser::parse_print_stmt()
 {
+    if(errorFind)
+        cout << "Starting parse_print_stmt" << endl;
+
     PrintStatement* stmt = new PrintStatement;
 
     expect(PRINT);
     Token t = expect(ID);
     stmt->id = symLookup(t.lexeme);
     expect(SEMICOLON);
+
+    if(errorFind)
+        cout << "Finished parse_print_stmt" << endl;
 
     return stmt;
 }
@@ -691,6 +714,5 @@ StatementNode* Parser::ParseInput()
 
     return startNode;
 }
-
 
 
