@@ -22,6 +22,7 @@ class Parser {
     ValueNode* symLookup(std::string name);
     ValueNode* addValNode(std::string name);
     ValueNode* constNode(int val);
+    void printStatementList(StatementNode* head);
 
 public:
     void print();

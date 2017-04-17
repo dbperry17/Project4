@@ -9,6 +9,7 @@
 
 using namespace std;
 bool errorFind = false;
+bool testIf = false;
 
 vector<ValueNode*> symTable;
 struct Parser::ExprNode
@@ -126,13 +127,52 @@ ValueNode* Parser::constNode(int val)
         cout << "Starting " << "constNode" << endl;
 
     ValueNode* temp = new ValueNode;
-    temp->name = "constant";
+    temp->name = "";
     temp->value = val;
 
     if(errorFind)
         cout << "Finished " << "constNode" << endl;
 
     return temp;
+}
+
+
+void Parser::printStatementList(StatementNode* head)
+{
+    cout << "\nStatement List: " << endl;
+
+    StatementNode* current = head;
+    while (current != NULL)
+    {
+        if (current->type == ASSIGN_STMT)
+        {
+            cout << "Assign Statement -> ";
+        }
+        else if (current->type == IF_STMT)
+        {
+            cout << "If Statement -> " << endl;
+            cout << "\tTrue path: ";
+            printStatementList(head->if_stmt->true_branch);
+            cout << "\n" << endl;
+        }
+        else if (current->type == NOOP_STMT)
+        {
+            cout << "No-Op Statement -> ";
+        }
+        else if (current->type == PRINT_STMT)
+        {
+            cout << "Print Statement -> ";
+        }
+        else if (current->type == GOTO_STMT)
+        {
+            cout << "Go-To Statement -> ";
+        }
+
+        current = current->next;
+    }
+
+
+    cout << "NULL" << endl;
 }
 
 
@@ -175,6 +215,11 @@ StatementNode* Parser::parse_program()
     //program -> var_section body
     parse_var_section();
     StatementNode* node = parse_body();
+
+    if(testIf)
+    {
+        printStatementList(node);
+    }
 
     if(errorFind)
         cout << "Finished " << "parse_program" << endl;
@@ -267,7 +312,7 @@ StatementNode* Parser::parse_stmt_list()
         if(node->type == IF_STMT)
         {
             node->next = node->if_stmt->false_branch;
-            node->next->next = nodeList;
+            node->if_stmt->false_branch->next = nodeList;
         }
         else
             node->next = nodeList;
@@ -345,7 +390,6 @@ StatementNode * Parser::parse_stmt()
             cout << "\nStatement type: If" << endl;
         stmt->type = IF_STMT;
         stmt->if_stmt = parse_if_stmt();
-        stmt->next = stmt->if_stmt->false_branch;
     }
     else if (t.token_type == SWITCH)
     {
