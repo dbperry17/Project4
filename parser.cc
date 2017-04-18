@@ -555,7 +555,6 @@ ArithmeticOperatorType Parser::parse_op()
 }
 
 //if_stmt -> IF condition body
-//TODO: Work on parse_if_stmt
 IfStatement * Parser::parse_if_stmt()
 {
     IfStatement* stmt = new IfStatement;
