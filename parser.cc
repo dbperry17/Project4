@@ -320,7 +320,13 @@ StatementNode* Parser::parse_stmt_list()
     else if (t.token_type == RBRACE)
     {
         // stmt_list -> stmt
-        node->next = NULL;
+        if(node->type == IF_STMT)
+        {
+            node->next = node->if_stmt->false_branch;
+            node->if_stmt->false_branch->next = NULL;
+        }
+        else
+            node->next = NULL;
     }
     else
     {
