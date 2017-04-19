@@ -642,7 +642,6 @@ StatementNode* Parser::parse_while_stmt()
 }
 
 //for_stmt -> FOR LPAREN assign_stmt condition SEMICOLON assign_stmt RPAREN body
-//TODO: Work on parse_for_stmt
 StatementNode* Parser::parse_for_stmt()
 {
     /*
