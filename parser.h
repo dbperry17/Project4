@@ -33,11 +33,11 @@ public:
     StatementNode* parse_body();
     StatementNode* parse_stmt_list();
     StatementNode* parse_stmt();
-    AssignmentStatement* parse_assign_stmt();
+    StatementNode* parse_assign_stmt();
     ExprNode* parse_expr();
     ValueNode* parse_primary();
     ArithmeticOperatorType parse_op();
-    PrintStatement* parse_print_stmt();
+    StatementNode* parse_print_stmt();
     StatementNode* parse_while_stmt();
     StatementNode* parse_if_stmt();
     CondNode* parse_condition();

@@ -136,7 +136,6 @@ ValueNode* Parser::constNode(int val)
     return temp;
 }
 
-
 void Parser::printStatementList(StatementNode* head)
 {
     cout << "\nStatement List: " << endl;
@@ -174,6 +173,7 @@ void Parser::printStatementList(StatementNode* head)
 
     cout << "NULL" << endl;
 }
+
 
 
 /*************
@@ -347,9 +347,6 @@ StatementNode* Parser::parse_stmt_list()
 //stmt -> if_stmt
 //stmt -> switch_stmt
 //stmt -> for_stmt
-//TODO: Check back after finishing parse_while_stmt
-//TODO: Check back after finishing parse_switch_stmt
-//TODO: Check back after finishing parse_for_stmt
 StatementNode * Parser::parse_stmt()
 {
     if(errorFind)
@@ -370,23 +367,20 @@ StatementNode * Parser::parse_stmt()
         // stmt -> assign_stmt
         if(errorFind)
             cout << "\nStatement type: Assign" << endl;
-        stmt->type = ASSIGN_STMT;
-        stmt->assign_stmt = parse_assign_stmt();
+        stmt = parse_assign_stmt();
     }
     else if (t.token_type == PRINT)
     {
         //stmt -> print_stmt
         if(errorFind)
             cout << "\nStatement type: Print" << endl;
-        stmt->type = PRINT_STMT;
-        stmt->print_stmt = parse_print_stmt();
+        stmt = parse_print_stmt();
     }
     else if (t.token_type == WHILE)
     {
         // stmt -> while_stmt
         if(errorFind)
             cout << "\nStatement type: While" << endl;
-        stmt->type = IF_STMT;
         stmt = parse_while_stmt();
     }
     else if (t.token_type == IF)
@@ -394,7 +388,6 @@ StatementNode * Parser::parse_stmt()
         //stmt -> if_stmt
         if(errorFind)
             cout << "\nStatement type: If" << endl;
-        stmt->type = IF_STMT;
         stmt = parse_if_stmt();
     }
     else if (t.token_type == SWITCH)
@@ -402,7 +395,6 @@ StatementNode * Parser::parse_stmt()
         // stmt -> switch_stmt
         if(errorFind)
             cout << "\nStatement type: Switch" << endl;
-        stmt->type = IF_STMT;
         stmt = parse_switch_stmt();
     }
     else if (t.token_type == FOR)
@@ -410,7 +402,6 @@ StatementNode * Parser::parse_stmt()
         //stmt -> for_stmt
         if(errorFind)
             cout << "\nStatement type: For" << endl;
-        stmt->type = IF_STMT;
         stmt = parse_for_stmt();
     }
     else
@@ -426,17 +417,20 @@ StatementNode * Parser::parse_stmt()
 
 //assign_stmt -> ID EQUAL primary SEMICOLON
 //assign_stmt -> ID EQUAL expr SEMICOLON
-AssignmentStatement* Parser::parse_assign_stmt()
+StatementNode* Parser::parse_assign_stmt()
 {
     if(errorFind)
         cout << "Starting " << "parse_assign_stmt" << endl;
 
-    AssignmentStatement* stmt = new AssignmentStatement;
+    StatementNode* stmt = new StatementNode;
+    stmt->type = ASSIGN_STMT;
+    AssignmentStatement* assignNode = new AssignmentStatement;
+    stmt->assign_stmt = assignNode;
     ValueNode* tempNode;
 
     Token t = expect(ID);
     tempNode = symLookup(t.lexeme);
-    stmt->left_hand_side = tempNode;
+    assignNode->left_hand_side = tempNode;
     expect(EQUAL);
     t = peek();
     tempNode = parse_primary();
@@ -449,16 +443,16 @@ AssignmentStatement* Parser::parse_assign_stmt()
         lexer.UngetToken(t);
         ExprNode* exprNode;
         exprNode = parse_expr();
-        stmt->op = exprNode->arith;
-        stmt->operand1 = exprNode->op1;
-        stmt->operand2 = exprNode->op2;
+        assignNode->op = exprNode->arith;
+        assignNode->operand1 = exprNode->op1;
+        assignNode->operand2 = exprNode->op2;
     }
     else
     {
         //assign_stmt -> ID EQUAL primary SEMICOLON
-        stmt->operand1 = tempNode;
-        stmt->op = OPERATOR_NONE;
-        stmt->operand2 = NULL;
+        assignNode->operand1 = tempNode;
+        assignNode->op = OPERATOR_NONE;
+        assignNode->operand2 = NULL;
     }
 
     expect(SEMICOLON);
@@ -590,7 +584,6 @@ StatementNode* Parser::parse_if_stmt()
 
 
 //while_stmt -> WHILE condition body
-//TODO: Work on parse_while_stmt
 StatementNode* Parser::parse_while_stmt()
 {
     StatementNode* stmt = new StatementNode;
@@ -603,6 +596,7 @@ StatementNode* Parser::parse_while_stmt()
     gtStmt->type = GOTO_STMT;
     GotoStatement* gtNode = new GotoStatement;
     gtStmt->goto_stmt = gtNode;
+    gtNode->target = stmt;
 
 
     CondNode* condNode;
@@ -621,8 +615,11 @@ StatementNode* Parser::parse_while_stmt()
         current = current->next;
     }
 
-    //append no-op node to end of if's body
-    current->next = noOpNode;
+    //append goto node to end of while's body
+    current->next = gtStmt;
+
+    //append no-op node to end of while's body
+    gtStmt->next = noOpNode;
     whileNode->false_branch = noOpNode;
 
     return stmt;
@@ -766,16 +763,19 @@ void Parser::parse_default_case()
 }
 
 //print_stmt -> print ID SEMICOLON
-PrintStatement* Parser::parse_print_stmt()
+StatementNode* Parser::parse_print_stmt()
 {
     if(errorFind)
         cout << "Starting parse_print_stmt" << endl;
 
-    PrintStatement* stmt = new PrintStatement;
+    StatementNode* stmt = new StatementNode;
+    stmt->type = PRINT_STMT;
+    PrintStatement* printNode = new PrintStatement;
+    stmt->print_stmt = printNode;
 
     expect(PRINT);
     Token t = expect(ID);
-    stmt->id = symLookup(t.lexeme);
+    printNode->id = symLookup(t.lexeme);
     expect(SEMICOLON);
 
     if(errorFind)
