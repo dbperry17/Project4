@@ -298,8 +298,8 @@ StatementNode* Parser::parse_stmt_list()
 
     // stmt_list -> stmt
     // stmt_list -> stmt stmt_list
-    StatementNode* node = parse_stmt();
-    StatementNode* nodeList;
+    StatementNode* stmt = parse_stmt();
+    StatementNode* stmtList;
 
     Token t = peek();
     if ((t.token_type == WHILE) || (t.token_type == ID) ||
@@ -307,26 +307,42 @@ StatementNode* Parser::parse_stmt_list()
         (t.token_type == FOR) || (t.token_type == IF))
     {
         // stmt_list -> stmt stmt_list
-        nodeList = parse_stmt_list();
+        stmtList = parse_stmt_list();
 
-        if(node->type == IF_STMT)
+        if(stmt->type == IF_STMT)
         {
-            node->next = node->if_stmt->false_branch;
-            node->if_stmt->false_branch->next = nodeList;
+            stmt->next = stmt->if_stmt->false_branch;
+            stmt->if_stmt->false_branch->next = stmtList;
+        }
+        else if(stmt->next != NULL)
+        {
+            if (stmt->next->type == IF_STMT)
+            {
+                stmt->next->next = stmt->next->if_stmt->false_branch;
+                stmt->next->if_stmt->false_branch->next = stmtList;
+            }
         }
         else
-            node->next = nodeList;
+            stmt->next = stmtList;
     }
     else if (t.token_type == RBRACE)
     {
         // stmt_list -> stmt
-        if(node->type == IF_STMT)
+        if(stmt->type == IF_STMT)
         {
-            node->next = node->if_stmt->false_branch;
-            node->if_stmt->false_branch->next = NULL;
+            stmt->next = stmt->if_stmt->false_branch;
+            stmt->if_stmt->false_branch->next = NULL;
+        }
+        else if(stmt->next != NULL)
+        {
+            if (stmt->next->type == IF_STMT)
+            {
+                stmt->next->next = stmt->next->if_stmt->false_branch;
+                stmt->next->if_stmt->false_branch->next = NULL;
+            }
         }
         else
-            node->next = NULL;
+            stmt->next = NULL;
     }
     else
     {
@@ -338,7 +354,7 @@ StatementNode* Parser::parse_stmt_list()
         cout << "Finished " << "parse_stmt_list" << endl;
     }
 
-    return node;
+    return stmt;
 }
 
 //stmt -> assign_stmt
@@ -569,13 +585,13 @@ StatementNode* Parser::parse_if_stmt()
     ifNode->true_branch = parse_body();
 
     StatementNode* current = ifNode->true_branch;
-    //Find end of if's body
+    //Find end of True Branch's body
     while(current->next != NULL)
     {
         current = current->next;
     }
 
-    //append no-op node to end of if's body
+    //append no-op node to end of TB's body
     current->next = noOpNode;
     ifNode->false_branch = noOpNode;
 
@@ -609,16 +625,16 @@ StatementNode* Parser::parse_while_stmt()
     whileNode->true_branch = parse_body();
 
     StatementNode* current = whileNode->true_branch;
-    //Find end of if's body
+    //Find end of True Branch's body
     while (current->next != NULL)
     {
         current = current->next;
     }
 
-    //append goto node to end of while's body
+    //append goto node to end of TB's body
     current->next = gtStmt;
 
-    //append no-op node to end of while's body
+    //append no-op node to end of TB's body
     gtStmt->next = noOpNode;
     whileNode->false_branch = noOpNode;
 
@@ -629,6 +645,7 @@ StatementNode* Parser::parse_while_stmt()
 //TODO: Work on parse_for_stmt
 StatementNode* Parser::parse_for_stmt()
 {
+    /*
     StatementNode* stmt = new StatementNode;
     stmt->type = IF_STMT;
     IfStatement* forNode = new IfStatement;
@@ -642,6 +659,68 @@ StatementNode* Parser::parse_for_stmt()
     parse_assign_stmt();
     expect(RPAREN);
     parse_body();
+
+    return stmt;
+    */
+
+    StatementNode* stmt = new StatementNode;
+    stmt->type = ASSIGN_STMT;
+    StatementNode* aStmt2 = new StatementNode;
+    aStmt2->type = ASSIGN_STMT;
+    AssignmentStatement* aNode1 = new AssignmentStatement;
+    stmt->assign_stmt = aNode1;
+    AssignmentStatement* aNode2 = new AssignmentStatement;
+    aStmt2->assign_stmt = aNode2;
+
+    StatementNode* ifStmt = new StatementNode;
+    ifStmt->type = IF_STMT;
+    IfStatement* forNode = new IfStatement;
+    ifStmt->if_stmt = forNode;
+    StatementNode* noOpNode = new StatementNode;
+    noOpNode->type = NOOP_STMT;
+    StatementNode* gtStmt = new StatementNode;
+    gtStmt->type = GOTO_STMT;
+    GotoStatement* gtNode = new GotoStatement;
+    gtStmt->goto_stmt = gtNode;
+    gtNode->target = ifStmt;
+
+
+    CondNode* condNode;
+
+    //Actual parsing part
+    expect(FOR);
+    expect(LPAREN);
+    stmt = parse_assign_stmt();
+
+    condNode = parse_condition();
+    forNode->condition_operand1 = condNode->op1;
+    forNode->condition_op = condNode->condType;
+    forNode->condition_operand2 = condNode->op2;
+
+    expect(SEMICOLON);
+    aStmt2 = parse_assign_stmt();
+    expect(RPAREN);
+    forNode->true_branch = parse_body();
+    //Actual parsing part done
+
+    stmt->next = ifStmt;
+    StatementNode* current = forNode->true_branch;
+
+    //Find end of True Branch's body
+    while (current->next != NULL)
+    {
+        current = current->next;
+    }
+
+    //append assign node 2 to end of TB's body
+    current->next = aStmt2;
+
+    //append goto node to end of TB's body
+    aStmt2->next = gtStmt;
+
+    //append no-op node to end of TB's body
+    gtStmt->next = noOpNode;
+    forNode->false_branch = noOpNode;
 
     return stmt;
 }
