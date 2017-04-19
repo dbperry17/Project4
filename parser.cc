@@ -387,7 +387,7 @@ StatementNode * Parser::parse_stmt()
         if(errorFind)
             cout << "\nStatement type: While" << endl;
         stmt->type = IF_STMT;
-        stmt->if_stmt = parse_while_stmt();
+        stmt = parse_while_stmt();
     }
     else if (t.token_type == IF)
     {
@@ -395,7 +395,7 @@ StatementNode * Parser::parse_stmt()
         if(errorFind)
             cout << "\nStatement type: If" << endl;
         stmt->type = IF_STMT;
-        stmt->if_stmt = parse_if_stmt();
+        stmt = parse_if_stmt();
     }
     else if (t.token_type == SWITCH)
     {
@@ -403,7 +403,7 @@ StatementNode * Parser::parse_stmt()
         if(errorFind)
             cout << "\nStatement type: Switch" << endl;
         stmt->type = IF_STMT;
-        stmt->if_stmt = parse_switch_stmt();
+        stmt = parse_switch_stmt();
     }
     else if (t.token_type == FOR)
     {
@@ -411,7 +411,7 @@ StatementNode * Parser::parse_stmt()
         if(errorFind)
             cout << "\nStatement type: For" << endl;
         stmt->type = IF_STMT;
-        stmt->if_stmt = parse_for_stmt();
+        stmt = parse_for_stmt();
     }
     else
     {
@@ -555,22 +555,26 @@ ArithmeticOperatorType Parser::parse_op()
 }
 
 //if_stmt -> IF condition body
-IfStatement * Parser::parse_if_stmt()
+StatementNode* Parser::parse_if_stmt()
 {
-    IfStatement* stmt = new IfStatement;
+    StatementNode* stmt = new StatementNode;
+    stmt->type = IF_STMT;
+    IfStatement* ifNode = new IfStatement;
+    stmt->if_stmt = ifNode;
     StatementNode* noOpNode = new StatementNode;
     noOpNode->type = NOOP_STMT;
+
 
     CondNode* condNode;
 
     expect(IF);
     condNode = parse_condition();
-    stmt->condition_operand1 = condNode->op1;
-    stmt->condition_op = condNode->condType;
-    stmt->condition_operand2 = condNode->op2;
-    stmt->true_branch = parse_body();
+    ifNode->condition_operand1 = condNode->op1;
+    ifNode->condition_op = condNode->condType;
+    ifNode->condition_operand2 = condNode->op2;
+    ifNode->true_branch = parse_body();
 
-    StatementNode* current = stmt->true_branch;
+    StatementNode* current = ifNode->true_branch;
     //Find end of if's body
     while(current->next != NULL)
     {
@@ -579,7 +583,7 @@ IfStatement * Parser::parse_if_stmt()
 
     //append no-op node to end of if's body
     current->next = noOpNode;
-    stmt->false_branch = noOpNode;
+    ifNode->false_branch = noOpNode;
 
     return stmt;
 }
@@ -587,22 +591,51 @@ IfStatement * Parser::parse_if_stmt()
 
 //while_stmt -> WHILE condition body
 //TODO: Work on parse_while_stmt
-IfStatement* Parser::parse_while_stmt()
+StatementNode* Parser::parse_while_stmt()
 {
-    IfStatement* stmt = new IfStatement;
+    StatementNode* stmt = new StatementNode;
+    stmt->type = IF_STMT;
+    IfStatement* whileNode = new IfStatement;
+    stmt->if_stmt = whileNode;
+    StatementNode* noOpNode = new StatementNode;
+    noOpNode->type = NOOP_STMT;
+    StatementNode* gtStmt = new StatementNode;
+    gtStmt->type = GOTO_STMT;
+    GotoStatement* gtNode = new GotoStatement;
+    gtStmt->goto_stmt = gtNode;
+
+
+    CondNode* condNode;
 
     expect(WHILE);
-    parse_condition();
-    parse_body();
+    condNode = parse_condition();
+    whileNode->condition_operand1 = condNode->op1;
+    whileNode->condition_op = condNode->condType;
+    whileNode->condition_operand2 = condNode->op2;
+    whileNode->true_branch = parse_body();
+
+    StatementNode* current = whileNode->true_branch;
+    //Find end of if's body
+    while (current->next != NULL)
+    {
+        current = current->next;
+    }
+
+    //append no-op node to end of if's body
+    current->next = noOpNode;
+    whileNode->false_branch = noOpNode;
 
     return stmt;
 }
 
 //for_stmt -> FOR LPAREN assign_stmt condition SEMICOLON assign_stmt RPAREN body
 //TODO: Work on parse_for_stmt
-IfStatement* Parser::parse_for_stmt()
+StatementNode* Parser::parse_for_stmt()
 {
-    IfStatement* stmt = new IfStatement;
+    StatementNode* stmt = new StatementNode;
+    stmt->type = IF_STMT;
+    IfStatement* forNode = new IfStatement;
+    stmt->if_stmt = forNode;
 
     expect(FOR);
     expect(LPAREN);
@@ -664,9 +697,12 @@ ConditionalOperatorType Parser::parse_relop()
 //switch_stmt -> SWITCH ID LBRACE case_list RBRACE
 //switch_stmt -> SWITCH ID LBRACE case_list default_case RBRACE
 //TODO: Work on parse_switch_stmt
-IfStatement* Parser::parse_switch_stmt()
+StatementNode* Parser::parse_switch_stmt()
 {
-    IfStatement* stmt = new IfStatement;
+    StatementNode* stmt = new StatementNode;
+    stmt->type = IF_STMT;
+    IfStatement* switchNode = new IfStatement;
+    stmt->if_stmt = switchNode;
 
     expect(SWITCH);
     expect(ID);

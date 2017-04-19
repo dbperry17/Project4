@@ -38,12 +38,12 @@ public:
     ValueNode* parse_primary();
     ArithmeticOperatorType parse_op();
     PrintStatement* parse_print_stmt();
-    IfStatement* parse_while_stmt();
-    IfStatement* parse_if_stmt();
+    StatementNode* parse_while_stmt();
+    StatementNode* parse_if_stmt();
     CondNode* parse_condition();
     ConditionalOperatorType parse_relop();
-    IfStatement* parse_switch_stmt();
-    IfStatement* parse_for_stmt();
+    StatementNode* parse_switch_stmt();
+    StatementNode* parse_for_stmt();
     void parse_case_list();
     void parse_case();
     void parse_default_case();
