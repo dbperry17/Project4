@@ -1,0 +1,19 @@
+
+a , b ;
+{
+a = 1  ;
+b = 2 ; 
+
+print a;
+
+SWITCH a
+{
+	case 0:
+	{
+		print b;
+	}
+	case 1:
+	{
+		print a;
+	}
+}

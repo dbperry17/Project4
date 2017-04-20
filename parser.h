@@ -15,6 +15,7 @@ class Parser {
   private:
     struct ExprNode;
     struct CondNode;
+    struct CaseNode;
     LexicalAnalyzer lexer;
     void syntax_error();
     Token expect(TokenType expected_type);
@@ -44,9 +45,9 @@ public:
     ConditionalOperatorType parse_relop();
     StatementNode* parse_switch_stmt();
     StatementNode* parse_for_stmt();
-    void parse_case_list();
-    void parse_case();
-    void parse_default_case();
+    StatementNode* parse_case_list();
+    CaseNode* parse_case();
+    StatementNode* parse_default_case();
 };
 
 #endif

@@ -8,7 +8,7 @@
 #include "parser.h"
 
 using namespace std;
-bool errorFind = false;
+bool errorFind = true;
 bool testIf = false;
 
 vector<ValueNode*> symTable;
@@ -24,6 +24,12 @@ struct Parser::CondNode
     ValueNode* op1;
     ValueNode* op2;
     ConditionalOperatorType condType;
+};
+
+struct Parser::CaseNode
+{
+    ValueNode* n;
+    StatementNode* body;
 };
 
 /********************************************************************
@@ -774,19 +780,65 @@ ConditionalOperatorType Parser::parse_relop()
 //TODO: Work on parse_switch_stmt
 StatementNode* Parser::parse_switch_stmt()
 {
+    /*
+     * Working without an equals sign:
+     *
+     *
+     * IF var == 1
+	 * {
+	 * 	    stmt list 1
+	 * 	    goto label
+	 * }
+	 * IF var == 2
+	 * {
+	 * 	    stmt list 2
+	 * 	    goto label
+	 * }
+	 * LABEL
+	 *
+	 *
+	 * IF var != 1
+	 * {
+	 * 	    false branch:
+     * 	        stmt list 1
+	 *   	    goto label
+	 * }
+     * True Branch:
+     *      noOpNode
+	 * IF var != 2
+	 * {
+     *      false branch:
+	 *  	    stmt list 2
+	 * 	        goto label
+	 * }
+     * True Branch:
+     *      noOpNode
+	 * LABEL
+     *
+     *
+     */
+
+
     StatementNode* stmt = new StatementNode;
     stmt->type = IF_STMT;
     IfStatement* switchNode = new IfStatement;
     stmt->if_stmt = switchNode;
+    StatementNode* noOpNode = new StatementNode;
+    noOpNode->type = NOOP_STMT;
+    StatementNode* gtStmt = new StatementNode;
+    gtStmt->type = GOTO_STMT;
+    GotoStatement* gtNode = new GotoStatement;
+    gtStmt->goto_stmt = gtNode;
 
     expect(SWITCH);
-    expect(ID);
+
+    //expect(ID);
+    Token t = lexer.GetToken();
+    ValueNode* switchVar = symLookup(t.lexeme);
     expect(LBRACE);
-    parse_case_list();
+    stmt = parse_case_list();
 
-    Token t = peek();
-
-
+    t = peek();
     if(t.token_type == DEFAULT)
     {
         parse_default_case();
@@ -795,6 +847,21 @@ StatementNode* Parser::parse_switch_stmt()
     else
     {
         //switch_stmt -> SWITCH ID LBRACE case_list RBRACE
+        StatementNode* current = stmt;
+        //Alter all cases to fix missing info
+        while(current->next != NULL)
+        {
+            current->if_stmt->condition_operand1 = switchVar;
+            StatementNode* currentCase = current->if_stmt->false_branch;
+            while(currentCase->next != NULL)
+            {
+                currentCase = currentCase->next;
+            }
+
+            currentCase->goto_stmt->target = noOpNode;
+        }
+
+        current->next = noOpNode;
     }
 
     expect(RBRACE);
@@ -803,41 +870,92 @@ StatementNode* Parser::parse_switch_stmt()
 }
 
 //case_list -> case case_list | case
-//TODO: Work on parse_case_list
-void Parser::parse_case_list()
+//TODO: Figure out why I'm getting a syntax error
+StatementNode* Parser::parse_case_list()
 {
-    parse_case();
+    StatementNode* stmt = new StatementNode;
+    stmt->type = IF_STMT;
+    IfStatement* switchNode = new IfStatement;
+    stmt->if_stmt = switchNode;
+    StatementNode* noOpNode = new StatementNode;
+    noOpNode->type = NOOP_STMT;
+    StatementNode* gtStmt = new StatementNode;
+    gtStmt->type = GOTO_STMT;
+    GotoStatement* gtNode = new GotoStatement;
+    gtStmt->goto_stmt = gtNode;
+
+    /*
+     * IF var != 1
+	 * {
+	 * 	    false branch:
+     * 	        stmt list 1
+	 *   	    goto label
+	 * }
+     * True Branch:
+     *      noOpNode
+     */
+
+    CaseNode* caseNode = parse_case();
+
+    switchNode->condition_op = CONDITION_NOTEQUAL;
+    switchNode->condition_operand2 = caseNode->n;
+    switchNode->false_branch = caseNode->body;
+    switchNode->true_branch = noOpNode;
+
+    StatementNode* current = switchNode->false_branch;
+    //Find end of False Branch's body
+    while(current->next != NULL)
+    {
+        current = current->next;
+    }
+
+    //append goto node to end of FB's body
+    current->next = gtStmt;
+    switchNode->true_branch = noOpNode;
+    stmt->next = noOpNode;
+
+
     Token t = peek();
     if(t.token_type == CASE)
     {
         //case_list -> case case_list
-        parse_case_list();
+        stmt->next->next = parse_case_list();
     }
     else if(t.token_type == RBRACE)
     {
         //case_list -> case
+        stmt->next->next = NULL;
     }
     else
         syntax_error();
+
+    return stmt;
 }
 
 //case -> CASE NUM COLON body
-//TODO: Work on parse_case
-void Parser::parse_case()
+Parser::CaseNode* Parser::parse_case()
 {
+    CaseNode* caseNode = new CaseNode;
+
     expect(CASE);
-    expect(NUM);
+
+    //expect(NUM);
+    Token t = lexer.GetToken();
+    caseNode->n = constNode(stoi(t.lexeme));
+
     expect(COLON);
-    parse_body();
+    caseNode->body = parse_body();
+
+
+    return caseNode;
 }
 
 //default_case -> DEFAULT COLON body
-//TODO: Work on parse_default_case
-void Parser::parse_default_case()
+StatementNode* Parser::parse_default_case()
 {
     expect(DEFAULT);
     expect(COLON);
-    parse_body();
+    return parse_body();
 }
 
 //print_stmt -> print ID SEMICOLON
