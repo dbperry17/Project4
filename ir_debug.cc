@@ -18,9 +18,9 @@ static void print_value_node(struct ValueNode* v)
     if (v != NULL)
     {
         if (v->name == "")
-            cout << v->value;
+            cout << "v->value = " << v->value;
         else
-            cout << v->name;
+            cout << "v->name = " << v->name;
         // Alternatively, you could print both:
         // cout << v->name << " (" << v->value << ")";
 

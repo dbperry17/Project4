@@ -8,12 +8,13 @@ print a;
 
 SWITCH a
 {
-	case 0:
+	CASE 0:
 	{
 		print b;
 	}
-	case 1:
+	CASE 1:
 	{
 		print a;
 	}
+}
 }

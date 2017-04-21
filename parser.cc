@@ -8,8 +8,10 @@
 #include "parser.h"
 
 using namespace std;
-bool errorFind = true;
+bool errorFind = false;
 bool testIf = false;
+int testNum = 1;
+//cout << "test " << testNum++ << endl;
 
 vector<ValueNode*> symTable;
 struct Parser::ExprNode
@@ -849,20 +851,26 @@ StatementNode* Parser::parse_switch_stmt()
         //switch_stmt -> SWITCH ID LBRACE case_list RBRACE
         StatementNode* current = stmt;
         //Alter all cases to fix missing info
+
         while(current->next != NULL)
         {
-            current->if_stmt->condition_operand1 = switchVar;
-            StatementNode* currentCase = current->if_stmt->false_branch;
-            while(currentCase->next != NULL)
+            if(current->type == IF_STMT)
             {
-                currentCase = currentCase->next;
-            }
+                current->if_stmt->condition_operand1 = switchVar;
+                StatementNode* currentCase = current->if_stmt->false_branch;
+                while (currentCase->next != NULL)
+                {
+                    currentCase = currentCase->next;
+                }
 
-            currentCase->goto_stmt->target = noOpNode;
+                currentCase->goto_stmt->target = noOpNode;
+            }
+            current = current->next;
         }
 
         current->next = noOpNode;
     }
+
 
     expect(RBRACE);
 
