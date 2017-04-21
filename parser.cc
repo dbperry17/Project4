@@ -334,8 +334,14 @@ StatementNode* Parser::parse_stmt_list()
 
         if(nintendo)
         {
-            stmt->next = stmt->if_stmt->true_branch;
-            stmt->if_stmt->true_branch->next = stmtList;
+            StatementNode* current = stmt;
+            //Alter all cases to fix missing info
+
+            while(current->next != NULL)
+            {
+                current = current->next;
+            }
+            current->next = NULL;
         }
         else if(stmt->type == IF_STMT)
         {
@@ -358,8 +364,14 @@ StatementNode* Parser::parse_stmt_list()
         // stmt_list -> stmt
         if(nintendo)
         {
-            stmt->next = stmt->if_stmt->true_branch;
-            stmt->if_stmt->true_branch->next = NULL;
+            StatementNode* current = stmt;
+            //Alter all cases to fix missing info
+
+            while(current->next != NULL)
+            {
+                current = current->next;
+            }
+            current->next = NULL;
         }
         else if(stmt->type == IF_STMT)
         {
