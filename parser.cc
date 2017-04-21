@@ -821,7 +821,6 @@ ConditionalOperatorType Parser::parse_relop()
 
 //switch_stmt -> SWITCH ID LBRACE case_list RBRACE
 //switch_stmt -> SWITCH ID LBRACE case_list default_case RBRACE
-//TODO: Work on parse_switch_stmt with default cases
 StatementNode* Parser::parse_switch_stmt()
 {
     /*
