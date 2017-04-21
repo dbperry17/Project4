@@ -58,9 +58,15 @@ void Parser::syntax_error()
 
 Token Parser::expect(TokenType expected_type)
 {
+    if(errorFind)
+        cout << "Expecting Token: " << expected_type << endl;
+
     Token t = lexer.GetToken();
     if (t.token_type != expected_type)
         syntax_error();
+
+    if(errorFind)
+        cout << "Found Token" << endl;
 
     return t;
 }
@@ -815,7 +821,6 @@ ConditionalOperatorType Parser::parse_relop()
 
 //switch_stmt -> SWITCH ID LBRACE case_list RBRACE
 //switch_stmt -> SWITCH ID LBRACE case_list default_case RBRACE
-//TODO: Work on parse_switch_stmt
 //TODO: Work on parse_switch_stmt with default cases
 StatementNode* Parser::parse_switch_stmt()
 {
@@ -862,6 +867,7 @@ StatementNode* Parser::parse_switch_stmt()
     stmt->type = IF_STMT;
     IfStatement* switchNode = new IfStatement;
     stmt->if_stmt = switchNode;
+    StatementNode* defaultStmt = new StatementNode;
 
     expect(SWITCH);
 
@@ -872,26 +878,43 @@ StatementNode* Parser::parse_switch_stmt()
     stmt = parse_case_list();
 
     t = peek();
+
+    //switch_stmt -> SWITCH ID LBRACE case_list RBRACE
+    StatementNode* current = stmt;
+    StatementNode* temp = stmt;
+    StatementNode* label = stmt;
+    //Alter all cases to fix missing info
+    while (current->next != NULL)
+    {
+        if (current->type == IF_STMT)
+        {
+            current->if_stmt->condition_operand1 = switchVar;
+        }
+        if(current->next->next == NULL)
+        {
+            temp = current;
+            label = current->next;
+        }
+        current = current->next;
+    }
+
+
     if(t.token_type == DEFAULT)
     {
-        parse_default_case();
         //switch_stmt -> SWITCH ID LBRACE case_list default_case RBRACE
-    }
-    else
-    {
-        //switch_stmt -> SWITCH ID LBRACE case_list RBRACE
-        StatementNode* current = stmt;
-        //Alter all cases to fix missing info
+        defaultStmt = parse_default_case();
+        temp->next = defaultStmt;
 
-        while(current->next != NULL)
+        current = defaultStmt;
+        while (current->next != NULL)
         {
-            if(current->type == IF_STMT)
-            {
-                current->if_stmt->condition_operand1 = switchVar;
-            }
             current = current->next;
         }
+
+        current->next = label;
+
     }
+
 
     expect(RBRACE);
 
@@ -959,6 +982,12 @@ StatementNode* Parser::parse_case_list()
         noOpNode->next = label;
         noOpNode->next->next = NULL;
     }
+    else if(t.token_type == DEFAULT)
+    {
+        //case_list -> case
+        noOpNode->next = label;
+        noOpNode->next->next = NULL;
+    }
     else
         syntax_error();
 
@@ -978,7 +1007,6 @@ Parser::CaseNode* Parser::parse_case()
 
     expect(COLON);
     caseNode->body = parse_body();
-
 
     return caseNode;
 }

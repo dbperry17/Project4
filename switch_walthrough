@@ -1,0 +1,103 @@
+IF var != 1
+{
+	stmt list 1
+	goto label
+}
+noOpNode
+IF var != 2
+{
+ 	    stmt list 2
+	    goto label
+}
+noOpNode
+LABEL
+
+
+    stmt;                                                   // 1	stmt
+    stmt->next;                                             // 6	noOpNode
+    stmt->if_stmt->false_branch;                            // 3	caseNode->body
+    stmt->if_stmt->false_branch->next;                      // 4	gtStmt
+    stmt->if_stmt->false_branch->next->goto_stmt->target;   // 13	label
+    stmt->if_stmt->false_branch->next->next;                // 6	noOpNode
+    stmt->if_stmt->true_branch;                             // 6	noOpNode
+    stmt->if_stmt->true_branch->next;                       // 7	caseList
+
+
+
+
+a , b ;
+{
+a = 1  ;
+b = 2 ; 
+
+print a;
+
+SWITCH a
+{
+	CASE 0:
+	{
+		print b;
+	}
+	CASE 1:
+	{
+		print a;
+	}
+}
+}
+
+
+
+
+IF a != 0
+{
+	print b;
+	goto label
+}
+noOpNode
+IF a != 1
+{
+ 	    print a;
+	    goto label
+}
+noOpNode
+default
+fdsf
+fdsf
+
+LABEL
+
+    stmt;                                                   // 0x60fb40		stmt
+    stmt->next;                                             // 0x60fb90		noOpNode
+    stmt->if_stmt->false_branch;                            // 0x60fcd0		caseNode->body
+    stmt->if_stmt->false_branch->next;                      // 0x60fbd0		gtStmt
+    stmt->if_stmt->false_branch->next->goto_stmt->target;   // 0x60fbb0		label
+    stmt->if_stmt->false_branch->next->next;                // 0x60fb90		noOpNode
+    stmt->if_stmt->true_branch;                             // 0x60fb90		noOpNode
+    stmt->if_stmt->true_branch->next;                       // 0x60fd40		caseList
+    
+    
+    
+    
+    
+    stmt;                                                   // 1	stmt
+    stmt->next;                                             // 6	noOpNode
+    stmt->if_stmt->false_branch;                            // 3	caseNode->body
+    stmt->if_stmt->false_branch->next;                      // 4	gtStmt
+    stmt->if_stmt->false_branch->next->goto_stmt->target;   // 13	label
+    stmt->if_stmt->false_branch->next->next;                // 6	noOpNode
+    stmt->if_stmt->true_branch;                             // 6	noOpNode
+    stmt->if_stmt->true_branch->next;                       // 7	caseList
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
