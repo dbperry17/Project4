@@ -10,6 +10,7 @@
 using namespace std;
 bool errorFind = false;
 bool testIf = false;
+bool testSwitch = false;
 int testNum = 1;
 //cout << "test " << testNum++ << endl;
 
@@ -144,6 +145,7 @@ ValueNode* Parser::constNode(int val)
     return temp;
 }
 
+//For testing purposes
 void Parser::printStatementList(StatementNode* head)
 {
     cout << "\nStatement List: " << endl;
@@ -158,8 +160,16 @@ void Parser::printStatementList(StatementNode* head)
         else if (current->type == IF_STMT)
         {
             cout << "If Statement -> " << endl;
-            cout << "\tTrue path: ";
-            printStatementList(head->if_stmt->true_branch);
+            if(testSwitch)
+            {
+                cout << "\tFalse path: ";
+                printStatementList(head->if_stmt->false_branch);
+            }
+            else
+            {
+                cout << "\tTrue path: ";
+                printStatementList(head->if_stmt->true_branch);
+            }
             cout << "\n" << endl;
         }
         else if (current->type == NOOP_STMT)
@@ -181,7 +191,6 @@ void Parser::printStatementList(StatementNode* head)
 
     cout << "NULL" << endl;
 }
-
 
 
 /*************
@@ -306,10 +315,16 @@ StatementNode* Parser::parse_stmt_list()
 
     // stmt_list -> stmt
     // stmt_list -> stmt stmt_list
+    bool nintendo = false; //because I think of them every time I type Switch
+    Token t = peek();
+    if(t.token_type == SWITCH)
+        nintendo = true;
+
     StatementNode* stmt = parse_stmt();
     StatementNode* stmtList;
 
-    Token t = peek();
+
+    t = peek();
     if ((t.token_type == WHILE) || (t.token_type == ID) ||
         (t.token_type == SWITCH) || (t.token_type == PRINT) ||
         (t.token_type == FOR) || (t.token_type == IF))
@@ -317,7 +332,12 @@ StatementNode* Parser::parse_stmt_list()
         // stmt_list -> stmt stmt_list
         stmtList = parse_stmt_list();
 
-        if(stmt->type == IF_STMT)
+        if(nintendo)
+        {
+            stmt->next = stmt->if_stmt->true_branch;
+            stmt->if_stmt->true_branch->next = stmtList;
+        }
+        else if(stmt->type == IF_STMT)
         {
             stmt->next = stmt->if_stmt->false_branch;
             stmt->if_stmt->false_branch->next = stmtList;
@@ -336,7 +356,12 @@ StatementNode* Parser::parse_stmt_list()
     else if (t.token_type == RBRACE)
     {
         // stmt_list -> stmt
-        if(stmt->type == IF_STMT)
+        if(nintendo)
+        {
+            stmt->next = stmt->if_stmt->true_branch;
+            stmt->if_stmt->true_branch->next = NULL;
+        }
+        else if(stmt->type == IF_STMT)
         {
             stmt->next = stmt->if_stmt->false_branch;
             stmt->if_stmt->false_branch->next = NULL;
@@ -606,7 +631,6 @@ StatementNode* Parser::parse_if_stmt()
     return stmt;
 }
 
-
 //while_stmt -> WHILE condition body
 StatementNode* Parser::parse_while_stmt()
 {
@@ -780,6 +804,7 @@ ConditionalOperatorType Parser::parse_relop()
 //switch_stmt -> SWITCH ID LBRACE case_list RBRACE
 //switch_stmt -> SWITCH ID LBRACE case_list default_case RBRACE
 //TODO: Work on parse_switch_stmt
+//TODO: Work on parse_switch_stmt with default cases
 StatementNode* Parser::parse_switch_stmt()
 {
     /*
@@ -825,12 +850,6 @@ StatementNode* Parser::parse_switch_stmt()
     stmt->type = IF_STMT;
     IfStatement* switchNode = new IfStatement;
     stmt->if_stmt = switchNode;
-    StatementNode* noOpNode = new StatementNode;
-    noOpNode->type = NOOP_STMT;
-    StatementNode* gtStmt = new StatementNode;
-    gtStmt->type = GOTO_STMT;
-    GotoStatement* gtNode = new GotoStatement;
-    gtStmt->goto_stmt = gtNode;
 
     expect(SWITCH);
 
@@ -857,20 +876,10 @@ StatementNode* Parser::parse_switch_stmt()
             if(current->type == IF_STMT)
             {
                 current->if_stmt->condition_operand1 = switchVar;
-                StatementNode* currentCase = current->if_stmt->false_branch;
-                while (currentCase->next != NULL)
-                {
-                    currentCase = currentCase->next;
-                }
-
-                currentCase->goto_stmt->target = noOpNode;
             }
             current = current->next;
         }
-
-        current->next = noOpNode;
     }
-
 
     expect(RBRACE);
 
@@ -878,7 +887,6 @@ StatementNode* Parser::parse_switch_stmt()
 }
 
 //case_list -> case case_list | case
-//TODO: Figure out why I'm getting a syntax error
 StatementNode* Parser::parse_case_list()
 {
     StatementNode* stmt = new StatementNode;
@@ -887,6 +895,8 @@ StatementNode* Parser::parse_case_list()
     stmt->if_stmt = switchNode;
     StatementNode* noOpNode = new StatementNode;
     noOpNode->type = NOOP_STMT;
+    StatementNode* label = new StatementNode;
+    label->type = NOOP_STMT;
     StatementNode* gtStmt = new StatementNode;
     gtStmt->type = GOTO_STMT;
     GotoStatement* gtNode = new GotoStatement;
@@ -919,7 +929,9 @@ StatementNode* Parser::parse_case_list()
 
     //append goto node to end of FB's body
     current->next = gtStmt;
-    switchNode->true_branch = noOpNode;
+    gtStmt->next = noOpNode;
+    gtNode->target = label;
+
     stmt->next = noOpNode;
 
 
@@ -927,12 +939,13 @@ StatementNode* Parser::parse_case_list()
     if(t.token_type == CASE)
     {
         //case_list -> case case_list
-        stmt->next->next = parse_case_list();
+        stmt->if_stmt->true_branch->next = parse_case_list();
     }
     else if(t.token_type == RBRACE)
     {
         //case_list -> case
-        stmt->next->next = NULL;
+        noOpNode->next = label;
+        noOpNode->next->next = NULL;
     }
     else
         syntax_error();
@@ -989,7 +1002,6 @@ StatementNode* Parser::parse_print_stmt()
 }
 
 //Teacher's function
-//TODO: See if this needs anything
 StatementNode* Parser::ParseInput()
 {
     if(errorFind)

@@ -8,10 +8,6 @@ print a;
 
 SWITCH a
 {
-	CASE 0:
-	{
-		print b;
-	}
 	CASE 1:
 	{
 		print a;
