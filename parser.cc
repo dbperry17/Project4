@@ -251,7 +251,6 @@ StatementNode* Parser::parse_program()
 }
 
 //var_section -> id_list SEMICOLON
-//TODO: See if this needs anything
 void Parser::parse_var_section()
 {
     if(errorFind)
@@ -265,7 +264,6 @@ void Parser::parse_var_section()
 }
 
 //id_list -> ID COMMA id_list | ID
-//TODO: See if this needs anything
 void Parser::parse_id_list()
 {
     if(errorFind)
@@ -866,7 +864,7 @@ StatementNode* Parser::parse_switch_stmt()
     stmt->type = IF_STMT;
     IfStatement* switchNode = new IfStatement;
     stmt->if_stmt = switchNode;
-    StatementNode* defaultStmt = new StatementNode;
+    StatementNode* defaultStmt;
 
     expect(SWITCH);
 

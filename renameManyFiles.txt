@@ -1,0 +1,14 @@
+To make sure it's coded correctly:
+
+	for filename in *foo*; do echo mv \"$filename\" \"${filename//foo/bar}\"; done > rename.txt
+
+(This prints the output to rename.txt without actually renaming anything.)
+
+To actually do it once you're sure it's correct:
+
+	for filename in *foo*; do mv "$filename" "${filename//foo/bar}"; done
+
+
+Yes, the asterisks and quotation marks are included.
+
+Source: http://www.peteryu.ca/tutorials/shellscripting/batch_rename
