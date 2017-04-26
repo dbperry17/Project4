@@ -865,6 +865,8 @@ StatementNode* Parser::parse_switch_stmt()
     IfStatement* switchNode = new IfStatement;
     stmt->if_stmt = switchNode;
     StatementNode* defaultStmt;
+    StatementNode* label = new StatementNode;
+    label->type = NOOP_STMT;
 
     expect(SWITCH);
 
@@ -874,33 +876,58 @@ StatementNode* Parser::parse_switch_stmt()
     expect(LBRACE);
     stmt = parse_case_list();
 
-    t = peek();
 
     //switch_stmt -> SWITCH ID LBRACE case_list RBRACE
     StatementNode* current = stmt;
-    StatementNode* temp = stmt;
-    StatementNode* label = stmt;
+    StatementNode* lastCase = stmt;
     //Alter all cases to fix missing info
     while (current->next != NULL)
     {
         if (current->type == IF_STMT)
         {
             current->if_stmt->condition_operand1 = switchVar;
+            StatementNode* caseBodyCurrent = current->if_stmt->false_branch;
+            while(caseBodyCurrent->next != NULL)
+            {
+                caseBodyCurrent = caseBodyCurrent->next;
+            }
+            caseBodyCurrent->goto_stmt->target = label;
+            caseBodyCurrent->next = current->next;
         }
+
         if(current->next->next == NULL)
-        {
-            temp = current;
-            label = current->next;
-        }
+            lastCase = current;
+
         current = current->next;
     }
 
+    /*
+        StatementNode* current = stmt;
+        //make sure all goto statements lead to same node
+        while (current->next != NULL)
+        {
+            if(current->type == IF_STMT)
+            {
+                StatementNode* temp = current->if_stmt->false_branch;
+                while(temp->next != NULL)
+                {
+                    temp = temp->next;
+                }
+                if (temp->type == GOTO_STMT)
+                    if(temp->goto_stmt->target == NULL)
+                        temp->goto_stmt->target = label;
+            }
+            current = current->next;
+        }
+     */
 
+
+    t = peek();
     if(t.token_type == DEFAULT)
     {
         //switch_stmt -> SWITCH ID LBRACE case_list default_case RBRACE
         defaultStmt = parse_default_case();
-        temp->next = defaultStmt;
+        lastCase->next->next = defaultStmt;
 
         current = defaultStmt;
         while (current->next != NULL)
@@ -911,6 +938,8 @@ StatementNode* Parser::parse_switch_stmt()
         current->next = label;
 
     }
+    else
+        lastCase->next->next = label;
 
 
     expect(RBRACE);
@@ -927,12 +956,6 @@ StatementNode* Parser::parse_case_list()
     stmt->if_stmt = switchNode;
     StatementNode* noOpNode = new StatementNode;
     noOpNode->type = NOOP_STMT;
-    StatementNode* label = new StatementNode;
-    label->type = NOOP_STMT;
-    StatementNode* gtStmt = new StatementNode;
-    gtStmt->type = GOTO_STMT;
-    GotoStatement* gtNode = new GotoStatement;
-    gtStmt->goto_stmt = gtNode;
 
     /*
      * IF var != 1
@@ -952,38 +975,18 @@ StatementNode* Parser::parse_case_list()
     switchNode->false_branch = caseNode->body;
     switchNode->true_branch = noOpNode;
 
-    StatementNode* current = switchNode->false_branch;
-    //Find end of False Branch's body
-    while(current->next != NULL)
-    {
-        current = current->next;
-    }
-
-    //append goto node to end of FB's body
-    current->next = gtStmt;
-    gtStmt->next = noOpNode;
-    gtNode->target = label;
-
     stmt->next = noOpNode;
-
 
     Token t = peek();
     if(t.token_type == CASE)
     {
         //case_list -> case case_list
-        stmt->if_stmt->true_branch->next = parse_case_list();
+        noOpNode->next = parse_case_list();
     }
-    else if(t.token_type == RBRACE)
+    else if((t.token_type == RBRACE) || (t.token_type == DEFAULT))
     {
         //case_list -> case
-        noOpNode->next = label;
-        noOpNode->next->next = NULL;
-    }
-    else if(t.token_type == DEFAULT)
-    {
-        //case_list -> case
-        noOpNode->next = label;
-        noOpNode->next->next = NULL;
+        noOpNode->next = NULL;
     }
     else
         syntax_error();
@@ -995,6 +998,10 @@ StatementNode* Parser::parse_case_list()
 Parser::CaseNode* Parser::parse_case()
 {
     CaseNode* caseNode = new CaseNode;
+    StatementNode* gtStmt = new StatementNode;
+    gtStmt->type = GOTO_STMT;
+    GotoStatement* gtNode = new GotoStatement;
+    gtStmt->goto_stmt = gtNode;
 
     expect(CASE);
 
@@ -1004,6 +1011,17 @@ Parser::CaseNode* Parser::parse_case()
 
     expect(COLON);
     caseNode->body = parse_body();
+
+    StatementNode* current = caseNode->body;
+    //Find end of caseNode's body
+    while(current->next != NULL)
+    {
+        current = current->next;
+    }
+
+    //append goto node to end of FB's body
+    current->next = gtStmt;
+    gtStmt->next = NULL;
 
     return caseNode;
 }

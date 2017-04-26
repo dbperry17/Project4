@@ -1,0 +1,38 @@
+Results without For Statements, only Switch Statements:
+	Assignment: 5/5
+	If: 18/18
+	While: 9/9
+	Switch and For: 2/24
+	Mixed: 3/10
+	
+Results without For Statements, only Switch Statements, no default cases:
+	Assignment: 5/5
+	If: 18/18
+	While: 9/9
+	Switch and For: 2/24
+	Mixed: 2/10
+
+Results without Switch Statements, only For Statements:
+	Assignment: 5/5
+	If: 18/18
+	While: 9/9
+	Switch and For: 13/24
+	Mixed: 3/10
+
+
+Results with both:
+	Assignment: 5/5
+	If: 18/18
+	While: 9/9
+	Switch and For: 15/24
+	Mixed: 5/10
+
+	
+Results with both, but without default statements:
+	Assignment: 5/5
+	If: 18/18
+	While: 9/9
+	Switch and For: 15/24
+	Mixed: 4/10
+
+

@@ -1,0 +1,64 @@
+var = 2;
+SWITCH var
+{
+	CASE 1 : { stmt list 1 }
+	CASE 2 : { stmt list 2 }
+	CASE 3 : { stmt list 3 }
+	CASE 4 : { stmt list 4 }
+}
+
+IF var == 1
+{
+	stmt list 1
+	goto label
+}
+IF var == 2
+{
+	stmt list 2
+	goto label
+}
+IF var == 3
+{
+	stmt list 3
+	goto label
+}
+IF var == 4
+{
+	stmt list 4
+	goto label
+}
+LABEL
+
+x = 1
+
+IF var != 1
+{
+	x = 0
+}
+IF x != 0
+{
+	stmt list 1
+	goto label
+}
+x = 1
+IF var != 2
+{
+	x = 0
+}
+IF x != 0
+{
+	stmt list 2
+	goto label
+}
+x = 1;
+IF var == 3
+{
+	stmt list 3
+	goto label
+}
+IF var == 4
+{
+	stmt list 4
+	goto label
+}
+LABEL

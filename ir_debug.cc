@@ -108,13 +108,28 @@ static void print_if(struct StatementNode* st, int indent)
         cout << " ) ";
     cout << " ) {\n";
 
+
     if (inverted)       // NOTE: This is for SWITCH statements
+    {
+        print_line_prefix(st, indent, true);
+        cout << "TRUE SWITCH: \n";
         print_statements(st->if_stmt->false_branch, st->if_stmt->true_branch, indent + 1);
+    }
     else
+    {
+        print_line_prefix(st, indent, true);
+        cout << "TRUE IF: \n";
         print_statements(st->if_stmt->true_branch, st->if_stmt->false_branch, indent + 1);
+    }
 
     print_line_prefix(st, indent, true);
     cout << "}\n";
+    print_line_prefix(st, indent, true);
+
+    if(inverted)
+        cout << "FALSE SWITCH: " << endl;
+    else
+        cout << "FALSE: " << endl;
 }
 
 static void print_assignment(struct StatementNode* st, int indent)
