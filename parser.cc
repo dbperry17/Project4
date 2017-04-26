@@ -345,7 +345,7 @@ StatementNode* Parser::parse_stmt_list()
             {
                 current = current->next;
             }
-            current->next = NULL;
+            current->next = stmtList;
         }
         else if(stmt->type == IF_STMT)
         {
@@ -743,8 +743,8 @@ StatementNode* Parser::parse_for_stmt()
     forNode->condition_operand1 = condNode->op1;
     forNode->condition_op = condNode->condType;
     forNode->condition_operand2 = condNode->op2;
-
     expect(SEMICOLON);
+
     aStmt2 = parse_assign_stmt();
     expect(RPAREN);
     forNode->true_branch = parse_body();
@@ -768,6 +768,7 @@ StatementNode* Parser::parse_for_stmt()
     //append no-op node to end of TB's body
     gtStmt->next = noOpNode;
     forNode->false_branch = noOpNode;
+    noOpNode->next = NULL;
 
     return stmt;
 }
@@ -867,6 +868,7 @@ StatementNode* Parser::parse_switch_stmt()
     StatementNode* defaultStmt;
     StatementNode* label = new StatementNode;
     label->type = NOOP_STMT;
+    label->next = NULL;
 
     expect(SWITCH);
 
