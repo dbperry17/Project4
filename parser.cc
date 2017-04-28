@@ -125,7 +125,7 @@ ValueNode* Parser::addValNode(string name)
         cout << "Starting " << "addValNode" << endl;
 
     ValueNode* temp = new ValueNode;
-    temp->name = "constant";
+    temp->name = name;
     symTable.push_back(temp);
     temp = symLookup(name); //yay recursion
 
